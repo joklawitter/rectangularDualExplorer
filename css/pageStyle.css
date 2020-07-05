@@ -1,0 +1,58 @@
+body {
+    font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+    -moz-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+    background: white;
+    background-color: #ffffff;
+}
+
+.toolbar {
+    align-items: left; 
+    display: flex; 
+    flex-direction: column; 
+    justify-content: center;
+}
+
+.toolbar input[type="radio"] {
+    display: none;
+  }
+
+.toolbar input[type="radio"]:checked+label {
+   background-color: #cae6f7;
+}
+
+.toolbar label {
+    cursor: pointer;
+    border: 1px solid #DDDDDD;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+    padding: 0.5em;
+    margin-top: 0.5em;
+    margin-right: 0.5em;
+}
+
+.toolOption {
+    align-items: center; 
+    display: flex; 
+    flex-direction: row; 
+    justify-content: center;
+    border: 1px solid #DDDDDD;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+    padding: 0.5em;
+    margin-top: 0.5em;
+}
+
+.menuButton {
+    align-items: center; 
+    display: flex; 
+    flex-direction: row; 
+    justify-content: center;
+    border: 1px solid #DDDDDD;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+    padding: 0.5em;
+    margin-top: 0.5em;
+}
+
+svg {
+    border: 1px solid #DDDDDD;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+}

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+</html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rectangular dual and REL visualiser</title>
+
+
+    <link rel="stylesheet" href="css/graphStyle.css">
+    <link rel="stylesheet" href="css/pageStyle.css">
+
+</head>
+
+<body>
+    <!-- markers -->
+
+    <!-- scripts -->
+    <script type="modul" src="scripts/model.js"></script>
+    <script type="modul" src="scripts/view.js"></script>
+    <script type="modul" src="scripts/controller.js"></script>
+
+    <div style="display: flex;">
+        <!-- Sidebar -->
+        <aside style="width: 10%;">
+            Tools: <br>
+            <div class="toolbar" id="toolbar">
+                <input type="radio" id="drawGraphRadio" name="tools" value="drawGraph">
+                <label for="drawGraphRadio" id="drawGraph">Draw graph</label>
+                <input type="radio" id="moveGraphRadio" name="tools" value="moveGraph">
+                <label for="moveGraphRadio" id="moveGraph">Move graph</label>
+                <input type="radio" id="ptpGraphRadio" name="tools" value="ptpGraph">
+                <label for="ptpGraphRadio" id="ptpGraph">Make PTP graph</label>
+                <input type="radio" id="doSomethingRadio" name="tools" value="doSomething">
+                <label for="doSomethingRadio" id="doSomething">Do something</label>
+            </div>
+        </aside>
+
+        <!-- Main -->
+        <main style="flex: 1; overflow: auto;">
+            <!-- svg -->
+            <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 600 600" id="theSVG">
+            </svg>
+        </main>
+    </div>
+
+    <script type="module">
+        import {initSVG} from "./scripts/view.js";
+        import {initGraph} from "./scripts/model.js";
+        import {toolSelected} from "./scripts/controller.js";
+
+        console.log("hello");
+        initSVG();
+        initGraph();
+        let tools = document.getElementById("toolbar").getElementsByTagName("input");
+        for (let tool of tools) {
+            tool.addEventListener("input", function (event)  {
+                toolSelected(this, event);
+            });
+        }
+    </script>
+
+
+</body>
+
+</html>
