@@ -3,7 +3,6 @@
 import * as model from "./model.js";
 
 let svg = document.querySelector("#theSVG");
-const vertexSize = 7;
 
 export function initSVG() {
     let layer = createSVGElement("g");
@@ -21,15 +20,14 @@ export function initSVG() {
 
 export function drawVertex(vertex) {
     let vertexLayer = svg.querySelector("#vertexLayer");
-    let coordinates = translateDOMtoSVGcoordinates(vertex.x, vertex.y);
 
     let svgVertex = createSVGElement("circle");
-    svgVertex.setAttribute("r", vertexSize);
-    svgVertex.setAttribute("cx", coordinates.x);
-    svgVertex.setAttribute("cy", coordinates.y);
+    svgVertex.setAttribute("r", getComputedStyle(document.documentElement).getPropertyValue('--vertexSize'));
+    svgVertex.setAttribute("cx", vertex.x);
+    svgVertex.setAttribute("cy", vertex.y);
     svgVertex.id = "svg-" + vertex.id;
 
-    vertex.svgVertex = this.svgVertex;
+    vertex.svgVertex = svgVertex;
     svgVertex.vertex = vertex;
 
     vertexLayer.append(svgVertex);
@@ -38,15 +36,12 @@ export function drawVertex(vertex) {
 
 export function drawEdge(edge) {
     let edgeLayer = svg.querySelector("#edgeLayer");
-    let coordinatesSource = translateDOMtoSVGcoordinates(edge.source.x, edge.source.y);
-    let coordinatesTarget = translateDOMtoSVGcoordinates(edge.target.x, edge.target.y);
-    
 
     let svgEdge = createSVGElement("line");
-    svgEdge.setAttribute("x1", coordinatesSource.x);
-    svgEdge.setAttribute("y1", coordinatesSource.y);
-    svgEdge.setAttribute("x2", coordinatesTarget.x);
-    svgEdge.setAttribute("y2", coordinatesTarget.y);
+    svgEdge.setAttribute("x1", edge.source.x);
+    svgEdge.setAttribute("y1", edge.source.y);
+    svgEdge.setAttribute("x2", edge.target.x);
+    svgEdge.setAttribute("y2", edge.target.y);
     svgEdge.id = "svg-" + edge.id;
     svgEdge.classList.add("edge");
 
@@ -57,13 +52,50 @@ export function drawEdge(edge) {
     return svgEdge;
 }
 
+export function addHalfEdge(svgVertex) {
+    let edgeLayer = svg.querySelector("#edgeLayer");
+
+    let svgEdge = createSVGElement("line");
+    svgEdge.setAttribute("x1", svgVertex.getAttribute("cx"));
+    svgEdge.setAttribute("y1", svgVertex.getAttribute("cy"));
+    svgEdge.setAttribute("x2", svgVertex.getAttribute("cx"));
+    svgEdge.setAttribute("y2", svgVertex.getAttribute("cy"));
+    svgEdge.id = "svg-half";
+    svgEdge.classList.add("edge");
+    svgEdge.classList.add("halfedge");
+
+    edgeLayer.append(svgEdge);
+    return svgEdge;
+}
+
+export function drawHalfEdge(halfEdge, coordinates) {
+    halfEdge.setAttribute("x2", coordinates.x);
+    halfEdge.setAttribute("y2", coordinates.y);
+}
+
+export function drawPolylineFromToVia(startVertex, targetVertex, midpoint, id) {
+    let edgeLayer = svg.querySelector("#edgeLayer");
+
+    let svgEdge = createSVGElement("polyline");
+    let points = startVertex.getAttribute("cx") + "," + startVertex.getAttribute("cy") + " " 
+    + midpoint.x + "," + midpoint.y + " "
+    + targetVertex.getAttribute("cx") + "," + targetVertex.getAttribute("cy");
+    svgEdge.setAttribute("points", points);
+    svgEdge.id = "svg-" + id;
+    svgEdge.classList.add("edge");
+
+    edgeLayer.append(svgEdge);
+    return svgEdge;
+}
+
+
 const SVGNS = "http://www.w3.org/2000/svg";
 
 function createSVGElement(tagName) {
     return document.createElementNS(SVGNS, tagName);
 }
 
-function translateDOMtoSVGcoordinates(x, y) {
+export function translateDOMtoSVGcoordinates(x, y) {
     let point = svg.createSVGPoint();
     point.x = x;
     point.y = y;

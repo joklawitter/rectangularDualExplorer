@@ -1,7 +1,15 @@
+:root {
+    --vertexSize: 7;
+}
+
 .edge {
     stroke-width: 2.5;
     stroke: black;
     stroke-linecap: round;
     stroke-linejoin: round;
     fill: none;
+}
+
+.halfedge {
+    stroke: darkgray;
 }

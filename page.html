@@ -35,13 +35,17 @@
                 <label for="ptpGraphRadio" id="ptpGraph">Make PTP graph</label>
                 <input type="radio" id="doSomethingRadio" name="tools" value="doSomething">
                 <label for="doSomethingRadio" id="doSomething">Do something</label>
+                <div class="toolbarRange">
+                    Vertex size
+                    <input type="range" min="1" max="20" value="7" class="slider" id="vertexSizeRange">
+                </div>
             </div>
         </aside>
 
         <!-- Main -->
         <main style="flex: 1; overflow: auto;">
             <!-- svg -->
-            <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 600 600" id="theSVG">
+            <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 700 350" id="theSVG">
             </svg>
         </main>
     </div>
@@ -50,16 +54,20 @@
         import {initSVG} from "./scripts/view.js";
         import {initGraph} from "./scripts/model.js";
         import {toolSelected} from "./scripts/controller.js";
+        import {rangeEventHandler} from "./scripts/controller.js";
 
-        console.log("hello");
         initSVG();
         initGraph();
         let tools = document.getElementById("toolbar").getElementsByTagName("input");
         for (let tool of tools) {
+            tool.checked = false;
             tool.addEventListener("input", function (event)  {
                 toolSelected(this, event);
             });
         }
+
+        let vertexRange = document.getElementById("vertexSizeRange");
+        vertexRange.addEventListener("input", rangeEventHandler);
     </script>
 
 
