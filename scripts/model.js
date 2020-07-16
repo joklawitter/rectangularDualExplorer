@@ -12,7 +12,6 @@ export class Graph {
         this.name = name;
         this.vertices = vertices;
         this.edges = edges;
-        this.drawn = false;
         if (this.vertices === null) {
             this.vertices = [];
         }
@@ -31,35 +30,69 @@ export class Graph {
         let vertices = [];
         let edges = [];
 
-        JSONgraph.nodes.forEach((node) => {
-            let type = (node.hasOwnProperty("type")) ? node.type : "";
-            let visible = (node.hasOwnProperty("visible")) ? node.visible : true;
-            let label = (node.hasOwnProperty("label")) ? node.label : "";
-            let labelPosition = (node.hasOwnProperty("labelPosition")) ? node.labelPosition : "";
-            let vertex = new Vertex(node.id, node.x, node.y, type, visible, label, labelPosition);
-            vertices.push(vertex);
+        JSONgraph.vertices.forEach((vertex) => {
+            let newVertex = new Vertex(vertex.id, vertex.x, vertex.y);
+            vertices.push(newVertex);
         });
 
-        JSONgraph.links.forEach((link) => {
-            let source = vertices[link.source];
-            let target = vertices[link.target];
-            let visible = (link.hasOwnProperty("visible")) ? link.visible : true;
-            let edge = new Edge(link.id, source, target, visible);
-            edges.push(edge);
-            source.edges.push(edge);
-            target.edges.push(edge);
+        JSONgraph.edges.forEach((edge) => {
+            let source = vertices[edge.source];
+            let target = vertices[edge.target];
+            let newEdge = new Edge(edge.id, source, target);
+            edges.push(newEdge);
+            source.edges.push(newEdge);
+            target.edges.push(newEdge);
         });
 
         let name = (JSONgraph.hasOwnProperty("name")) ? JSONgraph.name : "";
         return new Graph(JSONgraph.id, vertices, edges, name);
     }
 
+    toJSON() {
+        let JSONgraph = {};
+        JSONgraph.id = this.id;
+        JSONgraph.name = this.name;
+        JSONgraph.vertices = [];
+        for (let vertex of this.vertices) {
+            JSONgraph.vertices.push({
+                "id": vertex.id,
+                "x": vertex.x,
+                "y": vertex.y
+            })
+        }
+
+        JSONgraph.edges = [];
+        for (let edge of this.edges) {
+            JSONgraph.edges.push({
+                "id": edge.id,
+                "source": edge.source.id,
+                "target": edge.target.id
+            })
+        }
+
+        return JSON.stringify(JSONgraph);
+    }
+
     addVertex(vertex) {
         this.vertices.push(vertex);
     }
 
+    removeVertex(vertex) {
+        const index = this.vertices.indexOf(vertex);
+        if (index > -1) {
+            this.vertices.splice(index, 1);
+        }
+    }
+
     addEdge(edge) {
         this.edges.push(edge);
+    }
+
+    removeEdge(edge) {
+        const index = this.edges.indexOf(edge);
+        if (index > -1) {
+            this.edges.splice(index, 1);
+        }
     }
 
     setPositionAsOrigin() {
@@ -177,33 +210,29 @@ export class Graph {
 }
 
 export class Vertex {
-    constructor(id, x, y, type = "disc", visible = true, label = "", labelPosition = "S") {
+    constructor(id, x, y, type = "disc") {
         if (type == "") {
             type = "disc";
-        }
-        if (labelPosition === "") {
-            labelPosition = "S";
         }
 
         this.id = id;
         this.x = x;
         this.y = y;
-        this.origx = x;
-        this.origy = y;
-        this.index = id;
         this.type = type;
-        this.visible = visible;
-        this.label = label;
-        this.labelPosition = labelPosition;
         this.edges = [];
-        this.graph = null;
 
         this.svgVertex = null;
         this.svgLabel = null;
-        this.svgGraphPanel = null;
 
         this.svgHighlight = null;
         this.isHighlighted = false;
+    }
+
+    async removeEdge(edge) {
+        const index = this.edges.indexOf(edge);
+        if (index > -1) {
+            this.edges.splice(index, 1);
+        }
     }
 
     // hide and unhide
@@ -488,15 +517,13 @@ export class Vertex {
 }
 
 export class Edge {
-    constructor(id, source, target, visible = true) {
+    constructor(id, source, target) {
         this.id = "e" + id;
         this.source = source;
         this.target = target;
         this.string = "(" + source.id + "," + target.id + ")";
-        this.visible = visible;
 
         this.svgEdge = null;
-        this.svgGraphPanel = null;
 
         this.svgHighlight = null;
         this.isHighlighted = false;

@@ -8,7 +8,7 @@ export function initSVG() {
     let layer = createSVGElement("g");
     layer.id = "hightlightLayer";
     svg.append(layer);
-    
+
     layer = createSVGElement("g");
     layer.id = "edgeLayer";
     svg.append(layer);
@@ -34,6 +34,27 @@ export function drawVertex(vertex) {
     return svgVertex;
 }
 
+export function moveVertexTo(svgVertex, coordinates) {
+    svgVertex.setAttribute("cx", coordinates.x);
+    svgVertex.setAttribute("cy", coordinates.y);
+    let vertex = svgVertex.vertex;
+    vertex.x = coordinates.x;
+    vertex.y = coordinates.y;
+
+    let edges = vertex.edges;
+    for (let edge of edges) {
+        let svgEdge = edge.svgEdge;
+        if (edge.source === vertex) {
+            svgEdge.setAttribute("x1", coordinates.x);
+            svgEdge.setAttribute("y1", coordinates.y);
+        }
+        else {
+            svgEdge.setAttribute("x2", coordinates.x);
+            svgEdge.setAttribute("y2", coordinates.y);
+        }
+    }
+}
+
 export function drawEdge(edge) {
     let edgeLayer = svg.querySelector("#edgeLayer");
 
@@ -42,6 +63,9 @@ export function drawEdge(edge) {
     svgEdge.setAttribute("y1", edge.source.y);
     svgEdge.setAttribute("x2", edge.target.x);
     svgEdge.setAttribute("y2", edge.target.y);
+    svgEdge.setAttribute("stroke", "black");
+    svgEdge.setAttribute("style", "stroke-width: "
+        + getComputedStyle(document.documentElement).getPropertyValue('--edgeWidth'));
     svgEdge.id = "svg-" + edge.id;
     svgEdge.classList.add("edge");
 
@@ -77,10 +101,15 @@ export function drawPolylineFromToVia(startVertex, targetVertex, midpoint, id) {
     let edgeLayer = svg.querySelector("#edgeLayer");
 
     let svgEdge = createSVGElement("polyline");
-    let points = startVertex.getAttribute("cx") + "," + startVertex.getAttribute("cy") + " " 
-    + midpoint.x + "," + midpoint.y + " "
-    + targetVertex.getAttribute("cx") + "," + targetVertex.getAttribute("cy");
+    let points = startVertex.getAttribute("cx") + "," + startVertex.getAttribute("cy") + " "
+        + midpoint.x + "," + midpoint.y + " "
+        + targetVertex.getAttribute("cx") + "," + targetVertex.getAttribute("cy");
     svgEdge.setAttribute("points", points);
+    svgEdge.setAttribute("fill", "none");
+    svgEdge.setAttribute("stroke", "black");
+    svgEdge.setAttribute("style", "stroke-width: " 
+    + getComputedStyle(document.documentElement).getPropertyValue('--edgeWidth'));
+
     svgEdge.id = "svg-" + id;
     svgEdge.classList.add("edge");
 
@@ -88,6 +117,22 @@ export function drawPolylineFromToVia(startVertex, targetVertex, midpoint, id) {
     return svgEdge;
 }
 
+export function changeVertexSize(vertexSize) {
+    document.documentElement.style.setProperty('--vertexSize', vertexSize);
+
+    for (let vertex of model.graph.vertices) {
+        vertex.svgVertex.setAttribute("r", vertexSize);
+    }
+}
+
+export function changeEdgeWidth(edgeWidth) {
+    document.documentElement.style.setProperty('--edgeWidth', edgeWidth);
+
+    for (let edge of model.graph.edges) {
+        edge.svgEdge.setAttribute("style", "stroke-width: " 
+        + getComputedStyle(document.documentElement).getPropertyValue('--edgeWidth'));
+    }
+}
 
 const SVGNS = "http://www.w3.org/2000/svg";
 

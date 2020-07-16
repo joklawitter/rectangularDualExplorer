@@ -6,28 +6,42 @@ body {
     background-color: #ffffff;
 }
 
-.toolbar {
+.toolbar, .subtoolbar, .buttonTool {
     align-items: left; 
     display: flex; 
     flex-direction: column; 
     justify-content: center;
 }
 
-.toolbar input[type="radio"] {
+.hidden {
+    visibility: hidden;
     display: none;
-  }
+}
 
-.toolbar input[type="radio"]:checked+label {
+.toolbar input[type="radio"], .subtoolbar input[type="radio"] {
+    display: none;
+}
+
+.toolbar input[type="radio"]:checked+label, .subtoolbar input[type="radio"]:checked+label {
    background-color: #cae6f7;
 }
 
-.toolbar label {
+.toolbar label, .subtoolbar label, .buttonTool {
     cursor: pointer;
     border: 1px solid #DDDDDD;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
     padding: 0.5em;
     margin-top: 0.5em;
     margin-right: 0.5em;
+}
+
+.subtoolbar label {
+    margin-left: 0.5em;
+}
+
+.buttonTool label {
+    margin-left: 0.5em;
+    margin-bottom: 0.5em;
 }
 
 .toolbarRange {
@@ -75,28 +89,6 @@ body {
     background: #4CAF50;
     cursor: pointer;
 }
-
-/* .toolOption {
-    align-items: center; 
-    display: flex; 
-    flex-direction: row; 
-    justify-content: center;
-    border: 1px solid #DDDDDD;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
-    padding: 0.5em;
-    margin-top: 0.5em;
-}
-
-.menuButton {
-    align-items: center; 
-    display: flex; 
-    flex-direction: row; 
-    justify-content: center;
-    border: 1px solid #DDDDDD;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
-    padding: 0.5em;
-    margin-top: 0.5em;
-} */
 
 svg {
     border: 1px solid #DDDDDD;

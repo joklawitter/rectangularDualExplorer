@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 
-</html>
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -27,17 +25,33 @@
         <aside style="width: 10%;">
             Tools: <br>
             <div class="toolbar" id="toolbar">
-                <input type="radio" id="drawGraphRadio" name="tools" value="drawGraph">
+                <input class="mainMode" type="radio" id="drawGraphRadio" name="tools" value="drawGraph">
                 <label for="drawGraphRadio" id="drawGraph">Draw graph</label>
-                <input type="radio" id="moveGraphRadio" name="tools" value="moveGraph">
-                <label for="moveGraphRadio" id="moveGraph">Move graph</label>
-                <input type="radio" id="ptpGraphRadio" name="tools" value="ptpGraph">
+                <div class="subtoolbar hidden" id="drawToolbar">
+                    <input class="drawMode" type="radio" id="addRadio" name="tools" value="add">
+                    <label for="addRadio" id="add">Add</label>
+                    <input class="drawMode" type="radio" id="moveRadio" name="tools" value="move">
+                    <label for="moveRadio" id="move">Move</label>
+                    <input class="drawMode" type="radio" id="removeRadio" name="tools" value="remove">
+                    <label for="removeRadio" id="remove">Remove</label>
+                </div>
+                <input class="mainMode" type="radio" id="loadGraphRadio" name="tools" value="loadGraph">
+                <label for="loadGraphRadio" id="loadGraph">Load graph</label>
+                <input class="mainMode" type="radio" id="ptpGraphRadio" name="tools" value="ptpGraph">
                 <label for="ptpGraphRadio" id="ptpGraph">Make PTP graph</label>
-                <input type="radio" id="doSomethingRadio" name="tools" value="doSomething">
-                <label for="doSomethingRadio" id="doSomething">Do something</label>
+                <label id="saveGraph">Save graph</label>
+                <label id="saveSVG">Save SVG</label>
+                <div class="buttonTool">
+                    <input type="file" id="file-input" />
+                    <label id="read-button">Read File</label>
+                </div>
                 <div class="toolbarRange">
                     Vertex size
                     <input type="range" min="1" max="20" value="7" class="slider" id="vertexSizeRange">
+                </div>
+                <div class="toolbarRange">
+                    Edge size
+                    <input type="range" min="1" max="10" value="2" class="slider" id="edgeWidthRange">
                 </div>
             </div>
         </aside>
@@ -45,29 +59,38 @@
         <!-- Main -->
         <main style="flex: 1; overflow: auto;">
             <!-- svg -->
-            <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 700 350" id="theSVG">
+            <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 700 360" id="theSVG">
             </svg>
         </main>
     </div>
 
     <script type="module">
-        import {initSVG} from "./scripts/view.js";
-        import {initGraph} from "./scripts/model.js";
-        import {toolSelected} from "./scripts/controller.js";
-        import {rangeEventHandler} from "./scripts/controller.js";
+        import { initSVG } from "./scripts/view.js";
+        import { initGraph } from "./scripts/model.js";
+        import { toolSelected } from "./scripts/controller.js";
+        import { saveGraphHandler } from "./scripts/controller.js";
+        import { saveSVGHandler } from "./scripts/controller.js";
+        import { rangeEventHandler } from "./scripts/controller.js";
+        import { readFileHandler } from "./scripts/controller.js";
 
         initSVG();
         initGraph();
-        let tools = document.getElementById("toolbar").getElementsByTagName("input");
+        let tools = document.getElementById("toolbar").getElementsByClassName("mainMode");
         for (let tool of tools) {
             tool.checked = false;
-            tool.addEventListener("input", function (event)  {
+            tool.addEventListener("input", function (event) {
                 toolSelected(this, event);
             });
         }
 
+        document.getElementById("saveGraph").addEventListener("click", saveGraphHandler);
+        document.getElementById("saveSVG").addEventListener("click", saveSVGHandler);
+        document.querySelector("#read-button").addEventListener('click', readFileHandler);
+
         let vertexRange = document.getElementById("vertexSizeRange");
         vertexRange.addEventListener("input", rangeEventHandler);
+        let edgeRange = document.getElementById("edgeWidthRange");
+        edgeRange.addEventListener("input", rangeEventHandler);
     </script>
 
 
