@@ -35,16 +35,14 @@
                     <input class="drawMode" type="radio" id="removeRadio" name="tools" value="remove">
                     <label for="removeRadio" id="remove">Remove</label>
                 </div>
-                <input class="mainMode" type="radio" id="loadGraphRadio" name="tools" value="loadGraph">
-                <label for="loadGraphRadio" id="loadGraph">Load graph</label>
-                <input class="mainMode" type="radio" id="ptpGraphRadio" name="tools" value="ptpGraph">
-                <label for="ptpGraphRadio" id="ptpGraph">Make PTP graph</label>
                 <label id="saveGraph">Save graph</label>
                 <label id="saveSVG">Save SVG</label>
                 <div class="buttonTool">
                     <input type="file" id="file-input" />
                     <label id="read-button">Read File</label>
                 </div>
+                <label id="checkGraph">Check graph</label>
+                <label id="computeREL">Compute REL</label>
                 <div class="toolbarRange">
                     Vertex size
                     <input type="range" min="1" max="20" value="7" class="slider" id="vertexSizeRange">
@@ -65,32 +63,32 @@
     </div>
 
     <script type="module">
-        import { initSVG } from "./scripts/view.js";
+        import * as controller from "./scripts/controller.js";
+        import * as view from "./scripts/view.js";
         import { initGraph } from "./scripts/model.js";
-        import { toolSelected } from "./scripts/controller.js";
-        import { saveGraphHandler } from "./scripts/controller.js";
-        import { saveSVGHandler } from "./scripts/controller.js";
-        import { rangeEventHandler } from "./scripts/controller.js";
-        import { readFileHandler } from "./scripts/controller.js";
-
-        initSVG();
+        view.initSVG();
+        view.initSizes(document.getElementById("vertexSizeRange").value, document.getElementById("edgeWidthRange").value);
         initGraph();
+
+        import { toolSelected } from "./scripts/controller.js";
         let tools = document.getElementById("toolbar").getElementsByClassName("mainMode");
         for (let tool of tools) {
             tool.checked = false;
             tool.addEventListener("input", function (event) {
-                toolSelected(this, event);
+                controller.toolSelected(this, event);
             });
         }
-
-        document.getElementById("saveGraph").addEventListener("click", saveGraphHandler);
-        document.getElementById("saveSVG").addEventListener("click", saveSVGHandler);
-        document.querySelector("#read-button").addEventListener('click', readFileHandler);
-
-        let vertexRange = document.getElementById("vertexSizeRange");
-        vertexRange.addEventListener("input", rangeEventHandler);
-        let edgeRange = document.getElementById("edgeWidthRange");
-        edgeRange.addEventListener("input", rangeEventHandler);
+                
+        // saving, loading, checking
+        document.getElementById("saveGraph").addEventListener("click", controller.saveGraphHandler);
+        document.getElementById("saveSVG").addEventListener("click", controller.saveSVGHandler);
+        document.getElementById("read-button").addEventListener('click', controller.readFileHandler);
+        document.getElementById("checkGraph").addEventListener('click', controller.checkGraphHandler);
+        document.getElementById("computeREL").addEventListener('click', controller.computeRELHandler);
+        
+        // sliders
+        document.getElementById("vertexSizeRange").addEventListener("input", controller.rangeEventHandler);
+        document.getElementById("edgeWidthRange").addEventListener("input", controller.rangeEventHandler);
     </script>
 
 

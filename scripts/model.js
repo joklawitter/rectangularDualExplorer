@@ -1,5 +1,7 @@
 "use strict";
 
+import * as view from "./view.js";
+
 export let graph = null;
 
 export function initGraph(id = 0, name = "graph") {
@@ -26,9 +28,13 @@ export class Graph {
         }
     }
 
-    static parseGraph(JSONgraph) {
+    static parseGraph(JSONstring) {
+        let JSONgraph = JSON.parse(JSONstring);
         let vertices = [];
         let edges = [];
+
+        let id = JSONgraph.id;
+        console.log(JSONgraph.vertices);
 
         JSONgraph.vertices.forEach((vertex) => {
             let newVertex = new Vertex(vertex.id, vertex.x, vertex.y);
@@ -40,12 +46,11 @@ export class Graph {
             let target = vertices[edge.target];
             let newEdge = new Edge(edge.id, source, target);
             edges.push(newEdge);
-            source.edges.push(newEdge);
-            target.edges.push(newEdge);
         });
 
         let name = (JSONgraph.hasOwnProperty("name")) ? JSONgraph.name : "";
-        return new Graph(JSONgraph.id, vertices, edges, name);
+
+        graph = new Graph(JSONgraph.id, vertices, edges, name);
     }
 
     toJSON() {
@@ -93,6 +98,64 @@ export class Graph {
         if (index > -1) {
             this.edges.splice(index, 1);
         }
+    }
+
+    async computeEdgeOrders() {
+        for (let i = 0; i < this.vertices.length; i++) {
+            this.vertices[i].orderEdgesCircularly();
+        }
+    }
+
+    hasSeparatingTriangle() {
+        for (let i = 4; i < this.vertices.length; i++) {
+            const vertex = this.vertices[i];
+            for (let j = 0; j < vertex.edges.length - 2; j++) {
+                const edgeA = vertex.edges[j];
+                const vertexA = edgeA.getOtherEndpoint(vertex);
+                for (let k = j + 2; k < vertex.edges.length; k++) {
+                    const edgeB = vertex.edges[k];
+                    const vertexB = edgeB.getOtherEndpoint(vertex);
+
+                    // if they are adjacent, they form a triangle
+                    if (vertexA.hasNeighbour(vertexB)) {
+                        // which is separating if edgeA and edgeB not consecuitive
+                        // which is mostly excluded by choice of j and k
+                        // unless we looped around in first round
+                        if (!((j === 0) && (k === (vertex.edges.length - 1)))) {
+                            view.highlightVertex(vertex);
+                            view.highlightVertex(vertexA);
+                            view.highlightVertex(vertexB);
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    isTriangulated() {
+        for (let i = 4; i < this.vertices.length; i++) {
+            const vertex = this.vertices[i];
+            if (vertex.edges.length <= 2) {
+                console.log("Vertex " + vertex.id + " is isolated or on path.");
+                return false;
+            }
+
+            for (let j = 0; j < vertex.edges.length - 1; j++) {
+                const vertexA = vertex.edges[j].getOtherEndpoint(vertex);
+                const vertexB = vertex.edges[j + 1].getOtherEndpoint(vertex);
+
+                // if they are adjacent, they form a triangle
+                if (!vertexA.hasNeighbour(vertexB)) {
+                    view.highlightVertex(vertex);
+                    view.highlightVertex(vertexA);
+                    view.highlightVertex(vertexB);
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     setPositionAsOrigin() {
@@ -220,6 +283,7 @@ export class Vertex {
         this.y = y;
         this.type = type;
         this.edges = [];
+        this.isOnOuterFace = false;
 
         this.svgVertex = null;
         this.svgLabel = null;
@@ -233,6 +297,52 @@ export class Vertex {
         if (index > -1) {
             this.edges.splice(index, 1);
         }
+    }
+
+    async orderEdgesCircularly() {
+        if (this.id < 4) {
+            this.edge0 = this.edges[0];
+            this.edge1 = this.edges[1];
+        }
+
+        this.edges.sort((a, b) => {
+            let angleA = a.computeAngleFrom(this);
+            let angleB = b.computeAngleFrom(this);
+            // console.log("computed angles");
+            // console.log(a.id + ": " + angleA);
+            // console.log(b.id + ": " + angleB);
+
+            if (angleA > angleB) return 1;
+            if (angleA == angleB) return 0;
+            if (angleA < angleB) return -1;
+        })
+
+        switch (this.id) {
+            case 0:
+                this.edges.splice(this.edges.indexOf(this.edge0), 1);
+                this.edges.splice(this.edges.indexOf(this.edge1), 1);
+                this.edges.unshift(this.edge0);
+                this.edges.push(this.edge1);
+
+                break;
+            case 1:
+            case 2:
+            case 3:
+                this.edges.splice(this.edges.indexOf(this.edge0), 1);
+                this.edges.splice(this.edges.indexOf(this.edge1), 1);
+                this.edges.unshift(this.edge1);
+                this.edges.push(this.edge0);
+                break;
+        }
+    }
+
+    hasNeighbour(other) {
+        for (let edge of this.edges) {
+            if (edge.getOtherEndpoint(this) === other) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // hide and unhide
@@ -518,7 +628,7 @@ export class Vertex {
 
 export class Edge {
     constructor(id, source, target) {
-        this.id = "e" + id;
+        this.id = id;
         this.source = source;
         this.target = target;
         this.string = "(" + source.id + "," + target.id + ")";
@@ -530,6 +640,24 @@ export class Edge {
 
         this.source.edges.push(this);
         this.target.edges.push(this);
+    }
+
+    computeSlope() {
+        return (this.target.y - this.source.y) / (this.target.x - this.source.x);
+    }
+
+    computeAngleFrom(u) {
+        const v = this.getOtherEndpoint(u);
+        const vRelativeX = v.x - u.x;
+        const vRelativeY = v.y - u.y;
+        // console.log("rel x: " + vRelativeX + ", rel y: " + vRelativeY);
+        // const angle = Math.atan((v.y - u.y) / (v.x - u.x)) * (180 / Math.PI);
+        const angle = Math.atan2(vRelativeY, vRelativeX) * 180 / Math.PI;
+        return angle;
+    }
+
+    getOtherEndpoint(vertex) {
+        return (this.source === vertex) ? this.target : this.source;
     }
 
     hide() {

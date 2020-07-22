@@ -2,6 +2,7 @@
 
 import * as model from "./model.js";
 import * as view from "./view.js";
+import * as algorithms from "./algorithms.js";
 
 let svg = null;
 
@@ -107,7 +108,7 @@ async function addVertex(coordinates) {
     model.graph.addVertex(vertex);
 
     // draw it
-    let svgVertex = view.drawVertex(vertex);
+    let svgVertex = await view.drawVertex(vertex);
 
     // add listener
     svgVertex.addEventListener("click", vertexClickHandler);
@@ -159,7 +160,7 @@ function initHalfEdge(event, svg) {
 }
 
 function endHalfEdge(endVertex, svg) {
-    let edge = new model.Edge(model.graph.edges.length, startVertex.vertex, endVertex.vertex);
+    let edge = new model.Edge("e" + model.graph.edges.length, startVertex.vertex, endVertex.vertex);
     model.graph.addEdge(edge);
     let svgEdge = view.drawEdge(edge);
     edge.svgEdge = svgEdge;
@@ -218,43 +219,47 @@ export async function addOuterFourCycle(svg) {
     let width = 700;
     let height = 350;
 
+
+    // order: W, N, E, S
     let padding = 10;
     let coordinates = {
-        x: width / 2,
-        y: padding
+        x: padding,
+        y: height / 2
     }
-    let svgVertexTop = await addVertex(coordinates, svg);
-
+    let svgVertexW = await addVertex(coordinates, svg);
+    svgVertexW.vertex.isOnOuterFace = true;
+    coordinates.x = width / 2;
     coordinates.y = height - padding;
-    let svgVertexBottom = await addVertex(coordinates, svg);
-    coordinates.x = padding;
+    let svgVertexS = await addVertex(coordinates, svg);
+    svgVertexS.vertex.isOnOuterFace = true;
+    coordinates.x = width - padding;
     coordinates.y = height / 2;
-    let svgVertexLeft = await addVertex(coordinates, svg);
-    coordinates.x = width - padding;
-    let svgVertexRight = await addVertex(coordinates, svg);
+    let svgVertexE = await addVertex(coordinates, svg);
+    svgVertexE.vertex.isOnOuterFace = true;
+    coordinates.x = width / 2;
+    coordinates.y = padding;
+    let svgVertexN = await addVertex(coordinates, svg);
+    svgVertexN.vertex.isOnOuterFace = true;
 
+    // order WN, NE, ES, SW
     coordinates.x = padding;
     coordinates.y = padding;
-    addOuterEdgeFromToVia(svgVertexLeft, svgVertexTop, coordinates);
-
-    coordinates.y = height - padding;
-    addOuterEdgeFromToVia(svgVertexLeft, svgVertexBottom, coordinates);
+    addOuterEdgeFromToVia(svgVertexW, svgVertexN, coordinates);
 
     coordinates.x = width - padding;
-    addOuterEdgeFromToVia(svgVertexBottom, svgVertexRight, coordinates);
+    addOuterEdgeFromToVia(svgVertexN, svgVertexE, coordinates);
 
-    coordinates.y = padding;
-    addOuterEdgeFromToVia(svgVertexTop, svgVertexRight, coordinates);
+    coordinates.y = height - padding;
+    addOuterEdgeFromToVia(svgVertexE, svgVertexS, coordinates);
+
+    coordinates.x = padding;
+    addOuterEdgeFromToVia(svgVertexS, svgVertexW, coordinates);
 }
 
 function addOuterEdgeFromToVia(startVertex, targetVertex, midpoint) {
-    let edge = new model.Edge("edge" + model.graph.edges.length, startVertex.vertex, targetVertex.vertex);
+    let edge = new model.Edge("e" + model.graph.edges.length, startVertex.vertex, targetVertex.vertex);
     model.graph.addEdge(edge);
-
-    let svgEdge = view.drawPolylineFromToVia(startVertex, targetVertex, midpoint, edge.id);
-    svgEdge.edge = edge;
-    edge.svgEdge = svgEdge;
-
+    view.drawPolylineFromToVia(startVertex, targetVertex, midpoint, edge);
 }
 
 let selectedVertex = null;
@@ -347,12 +352,19 @@ export let readFileHandler = {
         });
 
         // file reading finished successfully
-        reader.addEventListener('load', function (event) {
+        reader.addEventListener('load', async function (event) {
             // contents of file in variable     
             let text = event.target.result;
 
-            console.log(text);
-            model.graph = model.Graph.parseGraph(text);
+            model.Graph.parseGraph(text);
+            console.log(model.graph);
+
+            await view.resetSVG();
+            await view.drawGraph(model.graph);
+
+            for (let vertex of model.graph.vertices) {
+                vertex.svgVertex.addEventListener("click", vertexClickHandler);
+            }
         });
 
         // file reading failed
@@ -370,5 +382,42 @@ export let readFileHandler = {
 
         // read as text file
         reader.readAsText(file);
+    }
+}
+
+export let checkGraphHandler = {
+    async handleEvent(event) {
+        console.log("check graph properties");
+        await model.graph.computeEdgeOrders();
+        if (model.graph.hasSeparatingTriangle()) {
+            console.log("Error, graph has separating triangle.");
+        }
+        if (!model.graph.isTriangulated()) {
+            console.log("Error, graph is not triangulated.");
+        }
+
+    }
+}
+
+export let computeRELHandler = {
+    async handleEvent(event) {
+        console.log("> compute REL");
+        console.log("i) check if PTP graph");
+        await model.graph.computeEdgeOrders();
+        if (model.graph.hasSeparatingTriangle()) {
+            console.log("Error, graph has separating triangle.");
+            return;
+        }
+        if (!model.graph.isTriangulated()) {
+            console.log("Error, graph is not triangulated.");
+            return;
+        }
+
+        console.log("ii) compute canonical order");
+        const canonicalOrder = algorithms.computeCanonicalOrder(model.graph);
+        for (let vertex of canonicalOrder) {
+            console.log(vertex);
+        }
+
     }
 }

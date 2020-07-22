@@ -18,7 +18,62 @@ export function initSVG() {
     svg.append(layer);
 }
 
-export function drawVertex(vertex) {
+export function initSizes(vertexSize, edgeSize) {
+    document.documentElement.style.setProperty('--vertexSize', vertexSize);
+    document.documentElement.style.setProperty('--edgeWidth', edgeSize);
+    changeVertexHighlightSize(vertexSize);
+}
+
+function changeVertexHighlightSize(vertexSize) {
+    let highlightSize = parseInt(vertexSize) + parseInt(getComputedStyle(document.documentElement).getPropertyValue('--highlightDifference'));
+    document.documentElement.style.setProperty('--vertexHighlightSize', highlightSize);
+    return highlightSize;
+}
+
+export async function resetSVG() {
+    for (let layer of svg.children) {
+        while (layer.firstChild) {
+            layer.removeChild(layer.lastChild);
+        }
+    }
+
+    return true;
+}
+
+export async function drawGraph(graph) {
+    // draw vertices
+    for (let vertex of graph.vertices) {
+        let svgVertex = drawVertex(vertex);
+    }
+
+    // draw four outer edges
+    let width = 700;
+    let height = 350;
+    let padding = 10;
+    let coordinates = {
+        x: padding,
+        y: padding
+    }
+    // vertex order: W, S, E, N
+    // edge order WN, NE, ES, SW
+    drawPolylineFromToVia(graph.vertices[0].svgVertex, graph.vertices[3].svgVertex, coordinates, graph.edges[0]);
+
+    coordinates.x = width - padding;
+    drawPolylineFromToVia(graph.vertices[3].svgVertex, graph.vertices[2].svgVertex, coordinates, graph.edges[1]);
+
+    coordinates.y = height - padding;
+    drawPolylineFromToVia(graph.vertices[2].svgVertex, graph.vertices[1].svgVertex, coordinates, graph.edges[2]);
+
+    coordinates.x = padding;
+    drawPolylineFromToVia(graph.vertices[1].svgVertex, graph.vertices[0].svgVertex, coordinates, graph.edges[3]);
+
+    // draw other edges
+    for (let i = 4; i < graph.edges.length; i++) {
+        drawEdge(graph.edges[i]);
+    }
+}
+
+export async function drawVertex(vertex) {
     let vertexLayer = svg.querySelector("#vertexLayer");
 
     let svgVertex = createSVGElement("circle");
@@ -69,7 +124,7 @@ export function drawEdge(edge) {
     svgEdge.id = "svg-" + edge.id;
     svgEdge.classList.add("edge");
 
-    edge.svgEdge = this.svgEdge;
+    edge.svgEdge = svgEdge;
     svgEdge.edge = edge;
 
     edgeLayer.append(svgEdge);
@@ -97,7 +152,7 @@ export function drawHalfEdge(halfEdge, coordinates) {
     halfEdge.setAttribute("y2", coordinates.y);
 }
 
-export function drawPolylineFromToVia(startVertex, targetVertex, midpoint, id) {
+export function drawPolylineFromToVia(startVertex, targetVertex, midpoint, edge) {
     let edgeLayer = svg.querySelector("#edgeLayer");
 
     let svgEdge = createSVGElement("polyline");
@@ -107,21 +162,29 @@ export function drawPolylineFromToVia(startVertex, targetVertex, midpoint, id) {
     svgEdge.setAttribute("points", points);
     svgEdge.setAttribute("fill", "none");
     svgEdge.setAttribute("stroke", "black");
-    svgEdge.setAttribute("style", "stroke-width: " 
-    + getComputedStyle(document.documentElement).getPropertyValue('--edgeWidth'));
+    svgEdge.setAttribute("style", "stroke-width: "
+        + getComputedStyle(document.documentElement).getPropertyValue('--edgeWidth'));
 
-    svgEdge.id = "svg-" + id;
+    svgEdge.id = "svg-" + edge.id;
     svgEdge.classList.add("edge");
 
     edgeLayer.append(svgEdge);
+
+    svgEdge.edge = edge;
+    edge.svgEdge = svgEdge;
+
     return svgEdge;
 }
 
 export function changeVertexSize(vertexSize) {
     document.documentElement.style.setProperty('--vertexSize', vertexSize);
+    let highlightSize = changeVertexHighlightSize(vertexSize)
 
     for (let vertex of model.graph.vertices) {
         vertex.svgVertex.setAttribute("r", vertexSize);
+        if (vertex.svgHighlight != null) {
+            vertex.svgHighlight.setAttribute("r", highlightSize);
+        }
     }
 }
 
@@ -129,9 +192,26 @@ export function changeEdgeWidth(edgeWidth) {
     document.documentElement.style.setProperty('--edgeWidth', edgeWidth);
 
     for (let edge of model.graph.edges) {
-        edge.svgEdge.setAttribute("style", "stroke-width: " 
-        + getComputedStyle(document.documentElement).getPropertyValue('--edgeWidth'));
+        edge.svgEdge.setAttribute("style", "stroke-width: "
+            + getComputedStyle(document.documentElement).getPropertyValue('--edgeWidth'));
     }
+}
+
+export function highlightVertex(vertex) {
+    let hightlightLayer = svg.querySelector("#hightlightLayer");
+
+    let svgHighlight = createSVGElement("circle");
+    svgHighlight.setAttribute("r", getComputedStyle(document.documentElement).getPropertyValue('--vertexHighlightSize'));
+    svgHighlight.setAttribute("cx", vertex.x);
+    svgHighlight.setAttribute("cy", vertex.y);
+    svgHighlight.classList.add("highlight");
+    svgHighlight.id = "svg-highlight-" + vertex.id;
+
+    vertex.svgHighlight = svgHighlight;
+    svgHighlight.vertex = vertex;
+
+    hightlightLayer.append(svgHighlight);
+    return svgHighlight;
 }
 
 const SVGNS = "http://www.w3.org/2000/svg";
