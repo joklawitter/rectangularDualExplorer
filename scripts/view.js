@@ -10,6 +10,10 @@ export function initSVG() {
     svg.append(layer);
 
     layer = createSVGElement("g");
+    layer.id = "flipCyclesLayer";
+    svg.append(layer);
+
+    layer = createSVGElement("g");
     layer.id = "edgeLayer";
     svg.append(layer);
 
@@ -131,6 +135,14 @@ export function drawEdge(edge) {
     return svgEdge;
 }
 
+export function colorEdge(edge) {
+    if (edge.color === model.colors.RED) {
+        edge.svgEdge.setAttribute("stroke", getComputedStyle(document.documentElement).getPropertyValue('--redStroke'));
+    } else if (edge.color === model.colors.BLUE) {
+        edge.svgEdge.setAttribute("stroke", getComputedStyle(document.documentElement).getPropertyValue('--blueStroke'));
+    }
+}
+
 export function addHalfEdge(svgVertex) {
     let edgeLayer = svg.querySelector("#edgeLayer");
 
@@ -212,6 +224,31 @@ export function highlightVertex(vertex) {
 
     hightlightLayer.append(svgHighlight);
     return svgHighlight;
+}
+
+export function hightlightFlipCycle(flipCycle) {
+    let flipCyclesLayer = svg.querySelector("#flipCyclesLayer");
+
+    let svgFlipCycle = createSVGElement("polygon");
+    let points = flipCycle.u.svgVertex.getAttribute("cx") + "," + flipCycle.u.svgVertex.getAttribute("cy") + " "
+    + flipCycle.v.svgVertex.getAttribute("cx") + "," + flipCycle.v.svgVertex.getAttribute("cy") + " "
+    + flipCycle.w.svgVertex.getAttribute("cx") + "," + flipCycle.w.svgVertex.getAttribute("cy") + " "
+    + flipCycle.x.svgVertex.getAttribute("cx") + "," + flipCycle.x.svgVertex.getAttribute("cy");
+    svgFlipCycle.setAttribute("points", points);
+    svgFlipCycle.setAttribute("stroke", "none");
+    svgFlipCycle.setAttribute("fill-opacity", 0.5);
+    if (flipCycle.orientation === model.orientations.CW) {
+        svgFlipCycle.setAttribute("fill", getComputedStyle(document.documentElement).getPropertyValue('--flipCircleFillCW'));
+    } else {
+        svgFlipCycle.setAttribute("fill", getComputedStyle(document.documentElement).getPropertyValue('--flipCircleFillCCW'));
+    }
+    svgFlipCycle.id = "svg-flip-" + flipCycle.id;
+
+    flipCycle.svgFlipCycle = svgFlipCycle;
+    svgFlipCycle.flipCircle = flipCycle;
+
+    flipCyclesLayer.append(svgFlipCycle);
+    return svgFlipCycle;
 }
 
 const SVGNS = "http://www.w3.org/2000/svg";

@@ -1,8 +1,77 @@
 "use strict";
-
+import * as view from "./view.js";
+import * as model from "./model.js";
 
 export function computeREL(graph, canonicalOrder) {
-    // const canonicalOrder = computeCanonicalOrder(graph);
+    // canonical order should have been computed
+    // and engrained in graph
+    // i.e. vertices have .orderIndex, edges oriented and sorted in->out
+
+    // REL represented colour (red vertical, blue horizontal)
+
+    for (let i = 0; i < graph.vertices.length; i++) {
+        const vertex = graph.vertices[i];
+
+        // a) find base edge of incoming edges
+        // = min index among incoming 
+        let baseEdge = null;
+        let baseEdgeIndex = -1;
+        let baseOrderIndex = graph.vertices.length;
+        let numIncoming = 0;
+        for (let k = 0; k < vertex.edges.length; k++) {
+            const edge = vertex.edges[k];
+            if (vertex.isIncomingEdge(edge)) {
+                const neighbour = edge.getOtherEndpoint(vertex);
+                if (neighbour.orderIndex < baseOrderIndex) {
+                    baseEdge = edge;
+                    baseEdgeIndex = k;
+                    baseOrderIndex = neighbour.orderIndex;
+                }
+            } else {
+                // note: not reached for v_n (id == 3)
+                numIncoming = k;
+                break;
+            }
+
+        }    
+        if (i == 3) {
+            numIncoming = vertex.edges.length;
+        }
+        
+        // b) based on index of base edge
+        // colour the edges
+        for (let k = 0; k < numIncoming; k++) {
+            const edge = vertex.edges[k];
+            if (edge.svgEdge.tagName != "line") {
+                continue;
+            }
+
+            if (k < baseEdgeIndex) {
+                // right edge
+                markEdgeWithColor(edge, model.colors.BLUE);
+            } else if (k > baseEdgeIndex) {
+                // left edge
+                markEdgeWithColor(edge, model.colors.RED);
+            } else if (baseEdgeIndex === 0) {
+                // base edge must be right edge
+                markEdgeWithColor(edge, model.colors.BLUE);
+            } else if (baseEdgeIndex === numIncoming - 1) {
+                // base edge must be left edge
+                markEdgeWithColor(edge, model.colors.RED);
+            } else {
+                // base edge can be either, say left
+                markEdgeWithColor(edge, model.colors.BLUE);
+            }
+        } 
+        
+        vertex.numIncomingEdges = numIncoming;
+    }
+
+    // marks edge red or blue
+    function markEdgeWithColor(edge, color) {
+        edge.color = color;
+        view.colorEdge(edge); 
+    }
 }
 
 export function computeCanonicalOrder(graph) {
@@ -37,13 +106,7 @@ export function computeCanonicalOrder(graph) {
 
     // lets find the next vertex in reverse order 
     for (let k = n - 1; k >= 2; k--) {
-        console.log("find vk (k = " + k + ") of candidates");
-        for (const vertex of candidates) {
-            console.log(vertex.id);
-        }
-        console.log("picked ");
         let vk = candidates.shift();
-        console.log(vk);
         order[k] = vk;
         vk.marked = true;
         vk.outer = false;
@@ -100,6 +163,164 @@ export function computeCanonicalOrder(graph) {
         }
     }
 
+    for (const vertex of vertices) {
+        delete vertex.outer;
+        delete vertex.numChords;
+        delete vertex.marked;
+    }
 
     return order;
+}
+
+export function engrainCanonicalOrder(graph, canonicalOrder) {
+    // 1. write order onto vertices
+    for (let i = 0; i < canonicalOrder.length; i++) {
+        canonicalOrder[i].orderIndex = i;
+    }
+
+    // 2. orient edges based on this
+    for (const edge of graph.edges) {
+        let sOrderIndex = edge.source.orderIndex;
+        let tOrderIndex = edge.target.orderIndex;
+        if (sOrderIndex > tOrderIndex) {
+            edge.reverse();
+        }
+    }
+
+    // 3. sort edges to start with incoming edges
+    for (const vertex of graph.vertices) {
+        if (vertex.id == 3) {
+            continue;
+        }
+
+        let endIntervalOutgoing = -1;
+        for (let i = 0; i < vertex.edges.length; i++) {
+            const edge = vertex.edges[i];
+            if (vertex.isOutgoingEdge(edge)) {
+                endIntervalOutgoing = i;
+            } else {
+                break;
+            }
+        }
+
+        if (endIntervalOutgoing >= 0) {
+            // there were outgoing edges at the start
+            let outEdges = vertex.edges.splice(0, endIntervalOutgoing + 1);
+            vertex.edges = vertex.edges.concat(outEdges);
+        } else {
+            // we might have incoming edges at start and end
+            let endIntervalIncoming = vertex.edges.length;
+            for (let i = vertex.edges.length - 1; i >= 0; i--) {
+                const edge = vertex.edges[i];
+                if (vertex.isIncomingEdge(edge)) {
+                    endIntervalIncoming = i;
+                } else {
+                    break;
+                }
+            }
+           
+            if (endIntervalIncoming < vertex.edges.length) {
+                // there were outgoing edges at the start
+                let inEdges = vertex.edges.splice(endIntervalIncoming);
+                vertex.edges = inEdges.concat(vertex.edges);
+            }
+        }
+    }
+}
+
+export function findFlipCycles(graph) {
+    let flipCycles = [];
+
+    // try to find cycle u, v, w, x
+    for (const u of graph.vertices) {
+        
+        // find v
+        for (let ui = u.numIncomingEdges; ui < u.edges.length; ui++) {
+            const ue = u.edges[ui];
+            if (ue.color == model.colors.BLUE) {
+                const v = ue.getOtherEndpoint(u);
+
+                // find w
+                for (let vi = v.numIncomingEdges; vi < v.edges.length; vi++) {
+                    const ve = v.edges[vi];
+                    if (ve.color == model.colors.RED) {
+                        const w = ve.getOtherEndpoint(v);
+
+                        // find x
+                        for (let wi = 0; wi < u.numIncomingEdges; wi++) {
+                            const we = w.edges[wi];
+                            if (we.color == model.colors.BLUE) {
+                                const x = we.getOtherEndpoint(w);
+
+                                // can we close circle?
+                                for (let xi = 0; xi < x.numIncomingEdges; xi++) {
+                                    const xe = x.edges[xi];
+                                    if (xe.color == model.colors.RED) {
+                                        const u2 = xe.getOtherEndpoint(w);
+                                        if (u2 === u) {
+                                            let orientation = null;
+                                            // > find orientation
+                                            // vi = index of ve
+                                            // vj = index of ue for v
+                                            let vj = v.edges.indexOf(ue);
+                                            if ((vj === 0) && (vi !== v.edges.length)) {
+                                                // there are red edges inwards at v
+                                                orientation = model.orientations.CCW;
+                                            } else if ((vj !== 0) && (vi === v.edges.length)) {
+                                                // there are blue edges inwards at v
+                                                orientation = model.orientations.CW;
+                                            } else {
+                                                // v has no edges pointing inwards -> check w
+                                                // wi = index of we
+                                                // wj = index of ve for w
+                                                let wj = w.edges.indexOf(ve);
+                                                console.log("wj: " +  wj);
+                                                console.log("wi: " +  wi);
+
+                                                if (w.edges[wj + 1].color === model.colors.BLUE) {
+                                                    orientation = model.orientations.CW;
+                                                } else {
+                                                    orientation = model.orientations.CCW;
+                                                }
+                                            }
+
+
+                                            // save
+                                            flipCycles.push({
+                                                'id': flipCycles.length,
+                                                'u': u,
+                                                'ue': ue,
+                                                'v': v,
+                                                've': ve,
+                                                'w': w,
+                                                'we': we,
+                                                'x': x,
+                                                'xe': xe,
+                                                'orientation': orientation
+                                            })
+                                            // view.highlightVertex(u);
+                                            // view.highlightVertex(v);
+                                            // view.highlightVertex(w);
+                                            // view.highlightVertex(x);
+                                        }
+                                    }
+                                }
+                                
+                            }
+                        }
+
+                    }
+                }
+
+            }
+        }
+    }
+
+    // find orientation of flip cycle?
+    for (const flipCycle of flipCycles) {
+        
+
+    }
+
+    return flipCycles;
 }

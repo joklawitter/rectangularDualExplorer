@@ -387,7 +387,7 @@ export let readFileHandler = {
 
 export let checkGraphHandler = {
     async handleEvent(event) {
-        console.log("check graph properties");
+        console.log("> check graph properties");
         await model.graph.computeEdgeOrders();
         if (model.graph.hasSeparatingTriangle()) {
             console.log("Error, graph has separating triangle.");
@@ -401,7 +401,7 @@ export let checkGraphHandler = {
 
 export let computeRELHandler = {
     async handleEvent(event) {
-        console.log("> compute REL");
+        console.log(">  process to compute REL");
         console.log("i) check if PTP graph");
         await model.graph.computeEdgeOrders();
         if (model.graph.hasSeparatingTriangle()) {
@@ -415,10 +415,34 @@ export let computeRELHandler = {
 
         console.log("ii) compute canonical order");
         const canonicalOrder = algorithms.computeCanonicalOrder(model.graph);
-        console.log("result");
-        for (let vertex of canonicalOrder) {
-            console.log(vertex);
-        }
+        // console.log("result");
+        // for (let vertex of canonicalOrder) {
+        //     console.log(vertex);
+        // }
 
+        console.log("iii) orient edges according to order");
+        algorithms.engrainCanonicalOrder(model.graph, canonicalOrder);
+
+        console.log("iv) compute REL");
+        algorithms.computeREL(model.graph);
+    }
+}
+
+export let showFlipCyclesHandler = {
+    handleEvent(event) {
+        console.log("> find flip circle");
+        let flipCycles = algorithms.findFlipCycles(model.graph);
+
+        for (const flipCycle of flipCycles) {
+            view.hightlightFlipCycle(flipCycle);
+            flipCycle.svgFlipCycle.addEventListener("click", flipCycleHandler);
+        }
+    }
+}
+
+export let flipCycleHandler = {
+    handleEvent(event) {
+        let flipCircle = event.currentTarget;
+        console.log(flipCircle.flipCycle);
     }
 }
