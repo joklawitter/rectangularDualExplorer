@@ -415,6 +415,7 @@ export let computeRELHandler = {
 
         console.log("ii) compute canonical order");
         const canonicalOrder = algorithms.computeCanonicalOrder(model.graph);
+        console.log("result");
         for (let vertex of canonicalOrder) {
             console.log(vertex);
         }

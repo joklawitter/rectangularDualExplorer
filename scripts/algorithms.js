@@ -23,8 +23,12 @@ export function computeCanonicalOrder(graph) {
     }
 
     // 2. outer four cycle is at start on outer face
-    vertices[0].outer = vertices[1].outer = vertices[2].outer = vertices[3].outer = true;
-    vertices[0].marked = vertices[1].marked = true;
+    vertices[0].outer = true;
+    vertices[1].outer = true;
+    vertices[2].outer = true;
+    vertices[3].outer = true;
+    vertices[0].marked = true;
+    vertices[1].marked = true;
 
     // candidates for vk
     let candidates = [];
@@ -33,7 +37,11 @@ export function computeCanonicalOrder(graph) {
 
     // lets find the next vertex in reverse order 
     for (let k = n - 1; k >= 2; k--) {
-        console.log("find vk (k = " + k + ")");
+        console.log("find vk (k = " + k + ") of candidates");
+        for (const vertex of candidates) {
+            console.log(vertex.id);
+        }
+        console.log("picked ");
         let vk = candidates.shift();
         console.log(vk);
         order[k] = vk;
@@ -82,11 +90,11 @@ export function computeCanonicalOrder(graph) {
         // then those two had a chord
         if ((outerIntvalvk.length === 2) && (k <= n - 3)) {
             outerIntvalvk[0].numChords--;
-            if (outerIntvalvk[0].numChords == 0) {
+            if ((outerIntvalvk[0].numChords == 0) && !outerIntvalvk[0].marked) {
                 candidates.push(outerIntvalvk[0]);
             }
             outerIntvalvk[1].numChords--;
-            if (outerIntvalvk[1].numChords == 0) {
+            if ((outerIntvalvk[1].numChords == 0) && !outerIntvalvk[1].marked) {
                 candidates.push(outerIntvalvk[1]);
             }
         }
