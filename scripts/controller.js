@@ -441,5 +441,7 @@ export let flipCycleHandler = {
 
         model.graph.flipCycles = null;
         view.resetLayer("flipCyclesLayer");
+
+        showFlipCyclesHandler.handleEvent(null);
     }
 }

@@ -143,8 +143,10 @@ export function drawEdge(edge) {
 export function colorEdge(edge) {
     if (edge.color === model.colors.RED) {
         edge.svgEdge.setAttribute("stroke", getComputedStyle(document.documentElement).getPropertyValue('--redStroke'));
+        edge.svgEdge.setAttribute("marker-end", "url(#arrowRed)");
     } else if (edge.color === model.colors.BLUE) {
         edge.svgEdge.setAttribute("stroke", getComputedStyle(document.documentElement).getPropertyValue('--blueStroke'));
+        edge.svgEdge.setAttribute("marker-end", "url(#arrowBlue)");
     } else if (edge.color === model.colors.GREN) {
         edge.svgEdge.setAttribute("stroke", getComputedStyle(document.documentElement).getPropertyValue('--greenStroke'));
     }

@@ -30,3 +30,11 @@
     stroke: orange;
     fill: orange;
 }
+
+.blue {
+    fill: var(--blueStroke);
+}
+
+.red {
+    fill: var(--redStroke);
+}
