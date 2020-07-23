@@ -18,7 +18,7 @@ body {
     display: none;
 }
 
-.toolbar input[type="radio"], .subtoolbar input[type="radio"] {
+.toolbar input[type="radio"], .subtoolbar input[type="radio"], .checkboxHidden {
     display: none;
 }
 
@@ -44,7 +44,7 @@ body {
     margin-bottom: 0.5em;
 }
 
-.toolbarRange {
+.toolbarRange, .toolbarCheckbox {
     display: flex;
     flex-direction: column; 
     align-items: center;
@@ -88,6 +88,15 @@ body {
     border-radius: 50%;
     background: #4CAF50;
     cursor: pointer;
+}
+
+.toolbarRow {
+    display: flex;
+    flex-direction: row;
+}
+
+.toolbarRow  input[type="checkbox"]:checked+label {
+    background-color: #cae6f7;
 }
 
 svg {

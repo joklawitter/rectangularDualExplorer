@@ -134,19 +134,6 @@ let vertexClickHandler = {
         } else if (drawingMode === "remove") {
             let svgVertex = event.currentTarget;
             let vertex = svgVertex.vertex;
-            if (vertex.id < 4) {
-                // cannot remove outer vertex
-                return;
-            }
-            let edges = []
-            for (let edge of vertex.edges) {
-                edges.push(edge);
-            }
-            for (let edge of edges) {
-                await removeEdge(edge);
-            }
-
-            svgVertex.remove();
             model.graph.removeVertex(vertex);
         }
     }
@@ -202,17 +189,11 @@ let edgeClickHandler = {
         console.log("edge clicked");
         event.stopPropagation();
         if (drawingMode === "remove") {
-            removeEdge(event.currentTarget.edge);
+            let svgEdge = event.currentTarget;
+            let edge = svgEdge.edge;
+            model.graph.removeEdge(edge);
         }
     }
-}
-
-async function removeEdge(edge) {
-    let svgEdge = edge.svgEdge;
-    svgEdge.remove();
-    edge.source.removeEdge(edge);
-    edge.target.removeEdge(edge);
-    model.graph.removeEdge(edge);
 }
 
 export async function addOuterFourCycle(svg) {
@@ -387,6 +368,7 @@ export let readFileHandler = {
 
 export let checkGraphHandler = {
     async handleEvent(event) {
+        view.resetLayer("highlightLayer");
         console.log("> check graph properties");
         await model.graph.computeEdgeOrders();
         if (model.graph.hasSeparatingTriangle()) {
@@ -415,13 +397,12 @@ export let computeRELHandler = {
 
         console.log("ii) compute canonical order");
         const canonicalOrder = algorithms.computeCanonicalOrder(model.graph);
-        // console.log("result");
-        // for (let vertex of canonicalOrder) {
-        //     console.log(vertex);
-        // }
+        for (let vertex of canonicalOrder) {
+            console.log(vertex);
+        }
 
         console.log("iii) orient edges according to order");
-        algorithms.engrainCanonicalOrder(model.graph, canonicalOrder);
+        await algorithms.engrainCanonicalOrder(model.graph, canonicalOrder);
 
         console.log("iv) compute REL");
         algorithms.computeREL(model.graph);
@@ -430,19 +411,35 @@ export let computeRELHandler = {
 
 export let showFlipCyclesHandler = {
     handleEvent(event) {
+        // clean up
+        model.graph.flipCycles = null;
+        view.resetLayer("flipCyclesLayer");
+
+        // recompute
         console.log("> find flip circle");
         let flipCycles = algorithms.findFlipCycles(model.graph);
+        model.graph.flipCycles = flipCycles;
+
+        let showCWFlips = document.querySelector("#cwFlips").checked;
+        let showCCWFlips = document.querySelector("#ccwFlips").checked;
 
         for (const flipCycle of flipCycles) {
-            view.hightlightFlipCycle(flipCycle);
-            flipCycle.svgFlipCycle.addEventListener("click", flipCycleHandler);
+            if (((flipCycle.orientation === model.orientations.CW) && showCWFlips)
+                || ((flipCycle.orientation === model.orientations.CCW) && showCCWFlips)) {
+                view.hightlightFlipCycle(flipCycle);
+                flipCycle.svgFlipCycle.addEventListener("click", flipCycleHandler);
+            }
         }
+
     }
 }
 
 export let flipCycleHandler = {
     handleEvent(event) {
-        let flipCircle = event.currentTarget;
-        console.log(flipCircle.flipCycle);
+        let svgFlipCycle = event.target;
+        model.graph.flipFlipCycle(svgFlipCycle.flipCycle);
+
+        model.graph.flipCycles = null;
+        view.resetLayer("flipCyclesLayer");
     }
 }

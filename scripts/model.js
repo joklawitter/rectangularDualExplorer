@@ -34,7 +34,6 @@ export class Graph {
         let edges = [];
 
         let id = JSONgraph.id;
-        console.log(JSONgraph.vertices);
 
         JSONgraph.vertices.forEach((vertex) => {
             let newVertex = new Vertex(vertex.id, vertex.x, vertex.y);
@@ -82,10 +81,32 @@ export class Graph {
         this.vertices.push(vertex);
     }
 
-    removeVertex(vertex) {
+    async removeVertex(vertex) {
+        if (vertex.id < 4) {
+            // cannot remove outer vertex
+            return;
+        }
+
+        let edges = []
+        for (let edge of vertex.edges) {
+            edges.push(edge);
+        }
+        for (let edge of edges) {
+            await this.removeEdge(edge);
+        }
+
         const index = this.vertices.indexOf(vertex);
         if (index > -1) {
-            this.vertices.splice(index, 1);
+            let lastVertex = this.vertices.pop();
+            if (lastVertex !== vertex) {
+                lastVertex.id = index;
+                lastVertex.svgVertex.id = "svg-" + lastVertex.id;
+                this.vertices.splice(index, 1, lastVertex);
+            }
+        }
+
+        if (vertex.svgVertex != null) {
+            vertex.svgVertex.remove();
         }
     }
 
@@ -93,10 +114,22 @@ export class Graph {
         this.edges.push(edge);
     }
 
-    removeEdge(edge) {
+    async removeEdge(edge) {
         const index = this.edges.indexOf(edge);
         if (index > -1) {
-            this.edges.splice(index, 1);
+            let lastEdge = this.edges.pop();
+            if (lastEdge !== edge) {
+                lastEdge.id = index;
+                lastEdge.svgEdge.id = "svg-e" + lastEdge.id;
+                this.edges.splice(index, 1, lastEdge);
+            }
+        }
+
+        edge.source.removeEdge(edge);
+        edge.target.removeEdge(edge);
+
+        if (edge.svgEdge != null) {
+            edge.svgEdge.remove();
         }
     }
 
@@ -156,6 +189,102 @@ export class Graph {
             }
         }
         return true;
+    }
+
+    flipFlipCycle(flipCycle) {
+        let u = flipCycle.u;
+        let v = flipCycle.v;
+        let w = flipCycle.w;
+        let x = flipCycle.x;
+
+        let edgesToFlip = [];
+        let verticesWithChange = [];
+
+        verticesWithChange.push(u);
+        u.marked = true;
+        verticesWithChange.push(v);
+        v.marked = true;
+        verticesWithChange.push(w);
+        w.marked = true;
+        verticesWithChange.push(x);
+        x.marked = true;
+
+        for (let i = u.edges.indexOf(flipCycle.ue) + 1; i < u.edges.length; i++) {
+            const e = u.edges[i];
+            const neighbor = e.getOtherEndpoint(u);
+            if (neighbor === x) {
+                break;
+            } else {
+                edgesToFlip.push(e);
+                if (!neighbor.hasOwnProperty("marked") || (neighbor.marked === false)) {
+                    traverseFlipCycle(neighbor, flipCycle, edgesToFlip, verticesWithChange);
+                }
+            }
+        }
+
+        for (let i = v.edges.indexOf(flipCycle.ve) + 1; i < v.edges.length; i++) {
+            const e = v.edges[i];
+            const neighbor = e.getOtherEndpoint(v);
+            edgesToFlip.push(e);
+            if (!neighbor.hasOwnProperty("marked") || (neighbor.marked === false)) {
+                traverseFlipCycle(neighbor, flipCycle, edgesToFlip, verticesWithChange);
+            }
+        }
+
+        for (let i = x.numIncomingEdges; i < x.edges.length; i++) {
+            const e = x.edges[i];
+            const neighbor = e.getOtherEndpoint(x);
+            if (neighbor === w) {
+                break;
+            } else {
+                edgesToFlip.push(e);
+                if (!neighbor.hasOwnProperty("marked") || (neighbor.marked === false)) {
+                    traverseFlipCycle(neighbor, flipCycle, edgesToFlip, verticesWithChange);
+                }
+            }
+        }
+
+        for (const edge of edgesToFlip) {
+            // console.log(edge.svgEdge);
+            if (flipCycle.orientation === orientations.CW) {
+                if (edge.color === colors.BLUE) {
+                    edge.reverse();
+                    edge.color = colors.RED;
+                } else {
+                    edge.color = colors.BLUE;
+                }
+            } else {
+                if (edge.color === colors.RED) {
+                    edge.reverse();
+                    edge.color = colors.BLUE;
+                } else {
+                    edge.color = colors.RED;
+                }
+            }
+            view.colorEdge(edge);
+        }
+
+        for (const vertex of verticesWithChange) {
+            vertex.orderEdgesInOut();
+            vertex.marked = false;
+
+            if (vertex.id == 20) {
+                console.log(vertex);
+            }
+        }
+
+        function traverseFlipCycle(vertex, flipCycle, edgesToFlip, verticesWithChange) {
+            vertex.marked = true;
+            verticesWithChange.push(vertex);
+            for (let i = vertex.numIncomingEdges; i < vertex.edges.length; i++) {
+                const e = vertex.edges[i];
+                const neighbor = e.getOtherEndpoint(vertex);
+                edgesToFlip.push(e);
+                if (!neighbor.hasOwnProperty("marked") || (neighbor.marked === false)) {
+                    traverseFlipCycle(neighbor, flipCycle, edgesToFlip, verticesWithChange);
+                }
+            }
+        }
     }
 }
 
@@ -228,6 +357,61 @@ export class Vertex {
         }
     }
 
+    async orderEdgesInOut() {
+        if (this.id === 3) {
+            this.setNumberIncomingEdges();
+            return;
+        }
+
+        let endIntervalOutgoing = -1;
+        for (let i = 0; i < this.edges.length; i++) {
+            const edge = this.edges[i];
+            if (this.isOutgoingEdge(edge)) {
+                endIntervalOutgoing = i;
+            } else {
+                break;
+            }
+        }
+
+        if (endIntervalOutgoing >= 0) {
+            // there were outgoing edges at the start
+            let outEdges = this.edges.splice(0, endIntervalOutgoing + 1);
+            this.edges = this.edges.concat(outEdges);
+        } else {
+            // we might have incoming edges at start and end
+            let endIntervalIncoming = this.edges.length;
+            for (let i = this.edges.length - 1; i >= 0; i--) {
+                const edge = this.edges[i];
+                if (this.isIncomingEdge(edge)) {
+                    endIntervalIncoming = i;
+                } else {
+                    break;
+                }
+            }
+
+            if (endIntervalIncoming < this.edges.length) {
+                // there were outgoing edges at the start
+                let inEdges = this.edges.splice(endIntervalIncoming);
+                this.edges = inEdges.concat(this.edges);
+            }
+        }
+
+        // set number of incoming edges
+        this.setNumberIncomingEdges();
+    }
+
+    setNumberIncomingEdges() {
+        let count = 0;
+        for (const edge of this.edges) {
+            if (this.isIncomingEdge(edge)) {
+                count++;
+            } else {
+                break;
+            }
+        }
+        this.numIncomingEdges = count;
+    }
+
     hasNeighbour(other) {
         for (let edge of this.edges) {
             if (edge.getOtherEndpoint(this) === other) {
@@ -296,7 +480,8 @@ export class Edge {
 
 export const colors = {
     RED: "red",
-    BLUE: "blue"
+    BLUE: "blue",
+    GREEN: "green"
 }
 
 export const orientations = {

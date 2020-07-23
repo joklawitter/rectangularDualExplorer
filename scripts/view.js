@@ -6,7 +6,7 @@ let svg = document.querySelector("#theSVG");
 
 export function initSVG() {
     let layer = createSVGElement("g");
-    layer.id = "hightlightLayer";
+    layer.id = "highlightLayer";
     svg.append(layer);
 
     layer = createSVGElement("g");
@@ -36,12 +36,17 @@ function changeVertexHighlightSize(vertexSize) {
 
 export async function resetSVG() {
     for (let layer of svg.children) {
-        while (layer.firstChild) {
-            layer.removeChild(layer.lastChild);
-        }
+        resetLayer(layer.id);
     }
 
     return true;
+}
+
+export async function resetLayer(id) {
+    let layer = svg.querySelector("#" + id);
+    while (layer.firstChild) {
+        layer.removeChild(layer.lastChild);
+    }
 }
 
 export async function drawGraph(graph) {
@@ -125,7 +130,7 @@ export function drawEdge(edge) {
     svgEdge.setAttribute("stroke", "black");
     svgEdge.setAttribute("style", "stroke-width: "
         + getComputedStyle(document.documentElement).getPropertyValue('--edgeWidth'));
-    svgEdge.id = "svg-" + edge.id;
+    svgEdge.id = "svg-e" + edge.id;
     svgEdge.classList.add("edge");
 
     edge.svgEdge = svgEdge;
@@ -140,6 +145,8 @@ export function colorEdge(edge) {
         edge.svgEdge.setAttribute("stroke", getComputedStyle(document.documentElement).getPropertyValue('--redStroke'));
     } else if (edge.color === model.colors.BLUE) {
         edge.svgEdge.setAttribute("stroke", getComputedStyle(document.documentElement).getPropertyValue('--blueStroke'));
+    } else if (edge.color === model.colors.GREN) {
+        edge.svgEdge.setAttribute("stroke", getComputedStyle(document.documentElement).getPropertyValue('--greenStroke'));
     }
 }
 
@@ -226,6 +233,14 @@ export function highlightVertex(vertex) {
     return svgHighlight;
 }
 
+export function unhighlightVertex(vertex) {
+    let svgHighlight = vertex.svgHighlight;
+    if (svgHighlight != null) {
+        svgHighlight.remove();
+        vertex.svgHighlight = null;
+    }
+}
+
 export function hightlightFlipCycle(flipCycle) {
     let flipCyclesLayer = svg.querySelector("#flipCyclesLayer");
 
@@ -245,7 +260,7 @@ export function hightlightFlipCycle(flipCycle) {
     svgFlipCycle.id = "svg-flip-" + flipCycle.id;
 
     flipCycle.svgFlipCycle = svgFlipCycle;
-    svgFlipCycle.flipCircle = flipCycle;
+    svgFlipCycle.flipCycle = flipCycle;
 
     flipCyclesLayer.append(svgFlipCycle);
     return svgFlipCycle;

@@ -51,7 +51,17 @@
                 </div>
                 <label id="checkGraph">Check graph</label>
                 <label id="computeREL">Compute REL</label>
-                <label id="showFlipCycles">Show flip cycles</label>
+                <div class="toolbarCheckbox">
+                    <label id="showFlipCycles">
+                        Show flip cycles
+                    </label>
+                    <div class="toolbarRow">
+                        <input class="checkboxHidden" type="checkbox" id="cwFlips" name="tools" value="cwFlips">
+                        <label for="cwFlips" id="move">CW</label>
+                        <input class="checkboxHidden" type="checkbox" id="ccwFlips" name="tools" value="ccwFlips">
+                        <label for="ccwFlips" id="remove">CCW</label>
+                    </div>
+                </div>
             </div>
         </aside>
 
@@ -79,7 +89,7 @@
                 controller.toolSelected(this, event);
             });
         }
-                
+
         // saving, loading, checking
         document.getElementById("saveGraph").addEventListener("click", controller.saveGraphHandler);
         document.getElementById("saveSVG").addEventListener("click", controller.saveSVGHandler);
@@ -87,7 +97,7 @@
         document.getElementById("checkGraph").addEventListener('click', controller.checkGraphHandler);
         document.getElementById("computeREL").addEventListener('click', controller.computeRELHandler);
         document.getElementById("showFlipCycles").addEventListener('click', controller.showFlipCyclesHandler);
-        
+
         // sliders
         document.getElementById("vertexSizeRange").addEventListener("input", controller.rangeEventHandler);
         document.getElementById("edgeWidthRange").addEventListener("input", controller.rangeEventHandler);
