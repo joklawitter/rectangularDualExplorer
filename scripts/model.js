@@ -290,15 +290,12 @@ export class Graph {
 
 export class Vertex {
     constructor(id, x, y, type = "disc") {
-        if (type == "") {
-            type = "disc";
-        }
-
         this.id = id;
         this.x = x;
         this.y = y;
         this.type = type;
         this.edges = [];
+        this.numIncomingEdges = -1;
         this.isOnOuterFace = false;
 
         this.svgVertex = null;
@@ -316,6 +313,11 @@ export class Vertex {
     }
 
     async orderEdgesCircularly() {
+        if (this.edges.length == 0) {
+            this.numIncomingEdges = 0;
+            return this;
+        }
+
         if (this.id < 4) {
             this.edge0 = this.edges[0];
             this.edge1 = this.edges[1];
@@ -355,9 +357,15 @@ export class Vertex {
             delete this.edge0;
             delete this.edge1;
         }
+
+        return this;    
     }
 
     async orderEdgesInOut() {
+        if (this.edges.length == 0) {
+            this.numIncomingEdges = 0;
+            return this;
+        }
         if (this.id === 3) {
             this.setNumberIncomingEdges();
             return;
@@ -365,8 +373,7 @@ export class Vertex {
 
         let endIntervalOutgoing = -1;
         for (let i = 0; i < this.edges.length; i++) {
-            const edge = this.edges[i];
-            if (this.isOutgoingEdge(edge)) {
+            if (this.isOutgoingEdge(this.edges[i])) {
                 endIntervalOutgoing = i;
             } else {
                 break;
@@ -397,10 +404,12 @@ export class Vertex {
         }
 
         // set number of incoming edges
-        this.setNumberIncomingEdges();
+        await this.setNumberIncomingEdges();
+
+        return this;
     }
 
-    setNumberIncomingEdges() {
+    async setNumberIncomingEdges() {
         let count = 0;
         for (const edge of this.edges) {
             if (this.isIncomingEdge(edge)) {
@@ -428,6 +437,16 @@ export class Vertex {
     isOutgoingEdge(edge) {
         return (this === edge.source);
     }
+
+    nextEdge(edge) { // CW
+        const index = this.edges.indexOf(edge);
+        return (index === this.edges.length - 1) ? this.edges[0] : this.edges[index + 1];
+    }
+
+    prevEdge(edge) { // CCW
+        const index = this.edges.indexOf(edge);
+        return (index === 0) ? this.edges[this.edges.length - 1] : this.edges[index - 1];
+    }
 }
 
 export class Edge {
@@ -435,6 +454,9 @@ export class Edge {
         this.id = id;
         this.source = source;
         this.target = target;
+        if (source == null || source == undefined) {
+            console.log(id);
+        }
         this.string = "(" + source.id + "," + target.id + ")";
 
         this.svgEdge = null;

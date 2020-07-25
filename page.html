@@ -74,6 +74,7 @@
                         <label for="ccwFlips" id="remove">CCW</label>
                     </div>
                 </div>
+                <label id="computeRD">Compute RD</label>
             </div>
         </aside>
 
@@ -109,6 +110,7 @@
         document.getElementById("checkGraph").addEventListener('click', controller.checkGraphHandler);
         document.getElementById("computeREL").addEventListener('click', controller.computeRELHandler);
         document.getElementById("showFlipCycles").addEventListener('click', controller.showFlipCyclesHandler);
+        document.getElementById("computeRD").addEventListener('click', controller.computeRDHandler);
 
         // sliders
         document.getElementById("vertexSizeRange").addEventListener("input", controller.rangeEventHandler);

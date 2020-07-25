@@ -4,8 +4,16 @@ import * as model from "./model.js";
 
 let svg = document.querySelector("#theSVG");
 
+const WIDTH = 700;
+const HEIGHT = 360;
+const PADDING = 10;
+
 export function initSVG() {
     let layer = createSVGElement("g");
+    layer.id = "rectangularDualLayer";
+    svg.append(layer);
+    
+    layer = createSVGElement("g");
     layer.id = "highlightLayer";
     svg.append(layer);
 
@@ -266,6 +274,27 @@ export function hightlightFlipCycle(flipCycle) {
 
     flipCyclesLayer.append(svgFlipCycle);
     return svgFlipCycle;
+}
+
+export function drawRectangle(vertex, xmax, ymax) {
+    // console.log("draw rectangle");
+    // console.log(vertex);
+    let offset = 1;
+    let xStep = (WIDTH - 2) / xmax;
+    let yStep = (HEIGHT - 2) / ymax;
+    
+    let rectangularDualLayer = svg.querySelector("#rectangularDualLayer");
+    let svgRect = createSVGElement("rect");
+    svgRect.setAttribute("x", offset + vertex.rectangle.x1 * xStep);
+    svgRect.setAttribute("y", offset + vertex.rectangle.y1 * yStep);
+    svgRect.setAttribute("width", (vertex.rectangle.x2 * xStep - vertex.rectangle.x1 * xStep));
+    svgRect.setAttribute("height", (vertex.rectangle.y2 * yStep - vertex.rectangle.y1 * yStep));
+    svgRect.setAttribute("stroke", "darkgray");
+    svgRect.setAttribute("fill", "none");
+    rectangularDualLayer.append(svgRect);
+
+    vertex.svgRect = svgRect;
+    svgRect.vertex = vertex;
 }
 
 const SVGNS = "http://www.w3.org/2000/svg";

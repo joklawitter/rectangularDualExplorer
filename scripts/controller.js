@@ -198,8 +198,7 @@ let edgeClickHandler = {
 
 export async function addOuterFourCycle(svg) {
     let width = 700;
-    let height = 350;
-
+    let height = 360;
 
     // order: W, N, E, S
     let padding = 10;
@@ -397,9 +396,9 @@ export let computeRELHandler = {
 
         console.log("ii) compute canonical order");
         const canonicalOrder = algorithms.computeCanonicalOrder(model.graph);
-        for (let vertex of canonicalOrder) {
-            console.log(vertex);
-        }
+        // for (let vertex of canonicalOrder) {
+        //     console.log(vertex);
+        // }
 
         console.log("iii) orient edges according to order");
         await algorithms.engrainCanonicalOrder(model.graph, canonicalOrder);
@@ -443,5 +442,12 @@ export let flipCycleHandler = {
         view.resetLayer("flipCyclesLayer");
 
         showFlipCyclesHandler.handleEvent(null);
+    }
+}
+
+export let computeRDHandler = {
+    async handleEvent(event) {
+        console.log("> compute rectangular dual");
+        await algorithms.computeRectangularDual(model.graph);
     }
 }

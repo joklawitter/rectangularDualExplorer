@@ -262,11 +262,6 @@ export function findFlipCycles(graph) {
                                             // vi = index of ve
                                             // vj = index of ue for v
                                             let vj = v.edges.indexOf(ue);
-                                            console.log("determine orientation");
-                                            console.log(v);
-                                            console.log("deg(v) = " + v.edges.length);
-                                            console.log("vi = " + vi);
-                                            console.log("vj = " + vj);
                                             if ((vj === 0) && (vi !== (v.edges.length - 1))) {
                                                 // there are red edges inwards at v
                                                 orientation = model.orientations.CCW;
@@ -317,4 +312,240 @@ export function findFlipCycles(graph) {
 
 
     return flipCycles;
+}
+
+export async function computeRectangularDual(graph) {
+    console.log("i.a) compute blue subgraph");
+    const blueSubgraph = await computeColorSubgraph(graph, model.colors.BLUE);
+    console.log("i.b) and its blue dual");
+    const blueDual = await computeDual(blueSubgraph);
+    console.log("i.c) and an order on that one");
+    const blueMax = await computeTopologicalOrder(blueDual);
+
+    console.log("ii.a) compute red subgraph");
+    const redSubgraph = await computeColorSubgraph(graph, model.colors.RED);
+    console.log("ii.b) and its red dual");
+    const redDual = await computeDual(redSubgraph);
+    console.log("ii.c) and an order on that one");
+    const redMax = await computeTopologicalOrder(redDual);
+
+    console.log("blue max: " + blueMax);
+    console.log("red max: " + redMax);
+
+    console.log("iii) compute rectangle for each vertex");
+    for (let i = 0; i < graph.vertices.length; i++) {
+        let v = graph.vertices[i];
+        v.rectangle = await computeRectangle(i, v);
+        console.log(v.rectangle);
+        view.drawRectangle(v, blueMax + 1, redMax + 1);
+    }
+
+    async function computeRectangle(i, v) {
+        let rect = {};
+        switch (i) {
+            case 0: // W;
+                rect.x1 = 0;
+                rect.x2 = 1;
+                rect.y1 = 0;
+                rect.y2 = redMax;
+                break;
+            case 1: // S
+                rect.x1 = 1;
+                rect.x2 = blueMax + 1;
+                rect.y1 = 0;
+                rect.y2 = 1;
+                break;
+            case 2: // E;
+                rect.x1 = blueMax;
+                rect.x2 = blueMax + 1;
+                rect.y1 = 1;
+                rect.y2 = redMax + 1;
+                break;
+            case 3: // N
+                rect.x1 = 0;
+                rect.x2 = blueMax;
+                rect.y1 = redMax;
+                rect.y2 = redMax + 1;
+                break;
+            default:
+                rect.x1 = blueSubgraph.vertices[i].leftFace.orderIndex;
+                rect.x2 = blueSubgraph.vertices[i].rightFace.orderIndex;
+                rect.y1 = redSubgraph.vertices[i].leftFace.orderIndex;
+                rect.y2 = redSubgraph.vertices[i].rightFace.orderIndex;
+                break;
+        }
+
+        return rect;
+    }
+}
+
+export async function computeColorSubgraph(graph, color) {
+    const name = color + "Subgraph";
+    let vertices = [];
+    let edges = [];
+
+    for (let i = 0; i < graph.vertices.length; i++) {
+        const v = graph.vertices[i];
+        const copy = new model.Vertex(v.id, v.x, v.y)
+        copy.original = v;
+        vertices.push(copy);
+
+    }
+
+    for (const e of graph.edges) {
+        if (e.color === color) {
+            const copy = new model.Edge(e.id, vertices[e.source.id], vertices[e.target.id]);
+            copy.original = e;
+            edges.push(copy);
+        }
+    }
+
+    let subgraph = new model.Graph(graph.id + color, vertices, edges, name);
+
+    return await orderGraph(subgraph);
+
+    async function orderGraph(graph) {
+        for (let vertex of graph.vertices) {
+            let v = await vertex.orderEdgesCircularly();
+            v = await vertex.orderEdgesInOut();
+        }
+        return graph;
+    }
+}
+
+export async function computeDual(graph) {
+    // we assume graph is st-digraph
+    const name = graph.name + "*";
+    let faces = [];
+    let dualEdges = [];
+
+    // 1. faces
+    // every vertex v is local source of a face
+    // start at an outgoing edge e that is not rightmost outgoing edge
+    // go up as long edge is rightmost incoming edge, say at w
+    // then go up along edge after e at v until w
+    // i) s & t
+    const s = new model.Vertex(0);
+    faces.push(s);
+    const t = new model.Vertex("f" + faces.length);
+    faces.push(t);
+    await computeFaces();
+
+    // 2. dual edges
+    // every edge gives dual edge from leftFace to rightFace
+    // but we want to avoid multi-edges
+    // if edge is only outgoing edge of in1out1 vertex v
+    // dual edge has been added of in edge of v (or earlier)
+    await computeEdges();
+
+    return new model.Graph("dg" + graph.id, faces, dualEdges);
+
+    async function computeFaces() {
+        for (let v of graph.vertices) {
+            // ii) inner faces
+            for (let i = v.numIncomingEdges; i < v.edges.length - 1; i++) {
+                let e = v.edges[i];
+                const f = new model.Vertex("f" + faces.length);
+                faces.push(f);
+                await walkLeftBoundary(e, f);
+
+                e = v.edges[i + 1];
+                await walkRightBoundary(e, f);
+            }
+
+            // iv) points to s and t
+            if ((v.numIncomingEdges === 0) && (v.edges.length > 0)) {
+                // left outer boundary
+                v.leftFace = s;
+                let w = v;
+                let e = null;
+                while (w.numIncomingEdges < w.edges.length) {
+                    e = w.edges[w.numIncomingEdges];
+                    e.leftFace = s;
+                    w = e.target;
+                    w.leftFace = s;
+                }
+
+                // right outer boundary
+                v.rightFace = t;
+                w = v;
+                while (w.numIncomingEdges < w.edges.length) {
+                    e = w.edges[w.edges.length - 1];
+                    e.rightFace = t;
+                    w = e.target;
+                    w.rightFace = t;
+                }
+            }
+        }
+    }
+
+    async function walkLeftBoundary(e, f) {
+        e.rightFace = f;
+        const w = e.target;
+        // if e is the rightmost incoming edge of w
+        // we continue left boundary of f
+        if (w.edges[0] === e) {
+            w.rightFace = f;
+            let eNext = w.edges[w.edges.length - 1];
+            walkLeftBoundary(eNext, f);
+        }
+    }
+
+    async function walkRightBoundary(e, f) {
+        e.leftFace = f;
+        const w = e.target;
+        // if e is the leftmost incoming edge of w
+        // we continue right boundary of f
+        if (w.edges[w.numIncomingEdges - 1] === e) {
+            w.leftFace = f;
+            let eNext = w.edges[w.numIncomingEdges];
+            walkRightBoundary(eNext, f);
+        }
+    }
+
+    async function computeEdges() {
+        for (const e of graph.edges) {
+            const v = e.source;
+            if ((v.edges.length !== 2) || (v.isIncomingEdge !== 1)) {
+                const dualEdge = new model.Edge("de" + dualEdges.length, e.leftFace, e.rightFace);
+                dualEdges.push(dualEdge);
+            }
+        }
+    }
+}
+
+export async function computeTopologicalOrder(graph) {
+    let highestIndex = 1;
+    for (const v of graph.vertices) {
+        if (v.numIncomingEdges === 0) {
+            v.orderIndex = 1;
+        } else {
+            v.orderIndex = -1;
+        }
+    }
+
+    for (const v of graph.vertices) {
+        if (v.orderIndex < 0) {
+            await computeOrderRecursion(v);
+            highestIndex = (highestIndex >= v.orderIndex) ? highestIndex : v.orderIndex;
+        }
+    }
+
+    return highestIndex;
+
+    async function computeOrderRecursion(v) {
+        let max = 0;
+        for (let i = 0; i < v.edges.length; i++) {
+            const e = v.edges[i];
+            if (v.isIncomingEdge(e)) {
+                let w = e.source;
+                if (w.orderIndex < 0) {
+                    await computeOrderRecursion(w);
+                }
+                max = (max >= w.orderIndex) ? max : w.orderIndex;
+            }
+        }
+
+        v.orderIndex = max + 1;
+    }
 }
