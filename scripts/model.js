@@ -22,6 +22,7 @@ export class Graph {
         }
         this.svgLabel = null;
         this.svgGraphPanel = null;
+        this.hasREL = false;
 
         for (let vertex of this.vertices) {
             vertex.graph = this;
@@ -139,7 +140,7 @@ export class Graph {
         }
     }
 
-    hasSeparatingTriangle() {
+    async hasSeparatingTriangle() {
         for (let i = 4; i < this.vertices.length; i++) {
             const vertex = this.vertices[i];
             for (let j = 0; j < vertex.edges.length - 2; j++) {
@@ -167,7 +168,7 @@ export class Graph {
         return false;
     }
 
-    isTriangulated() {
+    async isTriangulated() {
         for (let i = 4; i < this.vertices.length; i++) {
             const vertex = this.vertices[i];
             if (vertex.edges.length <= 2) {
@@ -245,7 +246,6 @@ export class Graph {
         }
 
         for (const edge of edgesToFlip) {
-            // console.log(edge.svgEdge);
             if (flipCycle.orientation === orientations.CW) {
                 if (edge.color === colors.BLUE) {
                     edge.reverse();
@@ -267,10 +267,6 @@ export class Graph {
         for (const vertex of verticesWithChange) {
             vertex.orderEdgesInOut();
             vertex.marked = false;
-
-            if (vertex.id == 20) {
-                console.log(vertex);
-            }
         }
 
         function traverseFlipCycle(vertex, flipCycle, edgesToFlip, verticesWithChange) {
@@ -318,57 +314,22 @@ export class Vertex {
             return this;
         }
 
-        if (this.id < 4) {
-            this.edge0 = this.edges[0];
-            this.edge1 = this.edges[1];
-        }
-
         this.edges.sort((a, b) => {
             let angleA = a.computeAngleFrom(this);
             let angleB = b.computeAngleFrom(this);
-            // console.log("computed angles");
-            // console.log(a.id + ": " + angleA);
-            // console.log(b.id + ": " + angleB);
 
             if (angleA > angleB) return 1;
             if (angleA == angleB) return 0;
             if (angleA < angleB) return -1;
         })
 
-        switch (this.id) {
-            case 0:
-                this.edges.splice(this.edges.indexOf(this.edge0), 1);
-                this.edges.splice(this.edges.indexOf(this.edge1), 1);
-                this.edges.unshift(this.edge0);
-                this.edges.push(this.edge1);
-
-                break;
-            case 1:
-            case 2:
-            case 3:
-                this.edges.splice(this.edges.indexOf(this.edge0), 1);
-                this.edges.splice(this.edges.indexOf(this.edge1), 1);
-                this.edges.unshift(this.edge1);
-                this.edges.push(this.edge0);
-                break;
-        }
-
-        if (this.id < 4) {
-            delete this.edge0;
-            delete this.edge1;
-        }
-
-        return this;    
+        return this;
     }
 
     async orderEdgesInOut() {
         if (this.edges.length == 0) {
             this.numIncomingEdges = 0;
             return this;
-        }
-        if (this.id === 3) {
-            this.setNumberIncomingEdges();
-            return;
         }
 
         let endIntervalOutgoing = -1;
@@ -414,11 +375,11 @@ export class Vertex {
         for (const edge of this.edges) {
             if (this.isIncomingEdge(edge)) {
                 count++;
-            } else {
-                break;
             }
         }
         this.numIncomingEdges = count;
+
+        return this.numIncomingEdges;
     }
 
     hasNeighbour(other) {
@@ -454,9 +415,6 @@ export class Edge {
         this.id = id;
         this.source = source;
         this.target = target;
-        if (source == null || source == undefined) {
-            console.log(id);
-        }
         this.string = "(" + source.id + "," + target.id + ")";
 
         this.svgEdge = null;
@@ -474,10 +432,30 @@ export class Edge {
 
     computeAngleFrom(u) {
         const v = this.getOtherEndpoint(u);
-        const vRelativeX = v.x - u.x;
-        const vRelativeY = v.y - u.y;
-        // console.log("rel x: " + vRelativeX + ", rel y: " + vRelativeY);
-        // const angle = Math.atan((v.y - u.y) / (v.x - u.x)) * (180 / Math.PI);
+        let vx, vy;
+        if (this.svgEdge !== null) {
+            if (this.svgEdge.tagName === "line") {
+                vx = v.x;
+                vy = v.y;
+            } else {
+                let points = this.svgEdge.points;
+                let i = (this.source === u) ? 1 : points.length - 2;
+                vx = points[i].x;
+                vy = points[i].y;
+            }
+        } else {
+            if (this.original.svgEdge.tagName === "line") {
+                vx = v.x;
+                vy = v.y;
+            } else {
+                let points = this.original.svgEdge.points;
+                let i = (this.source === u) ? 1 : points.length - 2;
+                vx = points[i].x;
+                vy = points[i].y;
+            }
+        }
+        const vRelativeX = vx - u.x;
+        const vRelativeY = vy - u.y;
         const angle = Math.atan2(vRelativeY, vRelativeX) * 180 / Math.PI;
         return angle;
     }

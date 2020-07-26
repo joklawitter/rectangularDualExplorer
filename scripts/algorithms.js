@@ -64,6 +64,8 @@ export function computeREL(graph, canonicalOrder) {
         edge.color = color;
         view.colorEdge(edge);
     }
+
+    graph.hasREL = true;
 }
 
 export function computeCanonicalOrder(graph) {
@@ -172,6 +174,9 @@ export async function engrainCanonicalOrder(graph, canonicalOrder) {
 
     // 2. orient edges based on this
     for (const edge of graph.edges) {
+        if (edge.id === "e3") {
+            continue;
+        }
         let sOrderIndex = edge.source.orderIndex;
         let tOrderIndex = edge.target.orderIndex;
         if (sOrderIndex > tOrderIndex) {
@@ -320,23 +325,26 @@ export async function computeRectangularDual(graph) {
     console.log("i.b) and its blue dual");
     const blueDual = await computeDual(blueSubgraph);
     console.log("i.c) and an order on that one");
-    const blueMax = await computeTopologicalOrder(blueDual);
-
+    
+    
     console.log("ii.a) compute red subgraph");
     const redSubgraph = await computeColorSubgraph(graph, model.colors.RED);
     console.log("ii.b) and its red dual");
     const redDual = await computeDual(redSubgraph);
     console.log("ii.c) and an order on that one");
+    const blueMax = await computeTopologicalOrder(blueDual);
     const redMax = await computeTopologicalOrder(redDual);
 
     console.log("blue max: " + blueMax);
     console.log("red max: " + redMax);
 
+    graph.xmax = blueMax + 1;
+    graph.ymax = redMax + 1;
+
     console.log("iii) compute rectangle for each vertex");
     for (let i = 0; i < graph.vertices.length; i++) {
         let v = graph.vertices[i];
         v.rectangle = await computeRectangle(i, v);
-        console.log(v.rectangle);
         view.drawRectangle(v, blueMax + 1, redMax + 1);
     }
 
@@ -348,24 +356,28 @@ export async function computeRectangularDual(graph) {
                 rect.x2 = 1;
                 rect.y1 = 0;
                 rect.y2 = redMax;
+                rect.name = "rectWest";
                 break;
-            case 1: // S
-                rect.x1 = 1;
-                rect.x2 = blueMax + 1;
-                rect.y1 = 0;
-                rect.y2 = 1;
-                break;
-            case 2: // E;
-                rect.x1 = blueMax;
-                rect.x2 = blueMax + 1;
-                rect.y1 = 1;
-                rect.y2 = redMax + 1;
-                break;
-            case 3: // N
+                case 1: // S
                 rect.x1 = 0;
                 rect.x2 = blueMax;
                 rect.y1 = redMax;
                 rect.y2 = redMax + 1;
+                rect.name = "rectSouth";
+                break;
+                case 2: // E;
+                rect.x1 = blueMax;
+                rect.x2 = blueMax + 1;
+                rect.y1 = 1;
+                rect.y2 = redMax + 1;
+                rect.name = "rectEast";
+                break;
+                case 3: // N
+                rect.x1 = 1;
+                rect.x2 = blueMax + 1;
+                rect.y1 = 0;
+                rect.y2 = 1;
+                rect.name = "rectNorth";
                 break;
             default:
                 rect.x1 = blueSubgraph.vertices[i].leftFace.orderIndex;
@@ -400,16 +412,57 @@ export async function computeColorSubgraph(graph, color) {
         }
     }
 
-    let subgraph = new model.Graph(graph.id + color, vertices, edges, name);
+    // add phantom edge between source and sink
+    let s, t;
+    for (const v of vertices) {
+        await v.setNumberIncomingEdges();
+        if ((v.numIncomingEdges === 0) && (v.edges.length > 0)) {
+            s = v;
+        } else if ((v.numIncomingEdges == v.edges.length) && (v.edges.length > 0)) {
+            t = v;
+        }
+    }
+    s.isSource = true;
+    t.isSink = true;
+    let e = new model.Edge("phantom" + color, t, s);
+    e.isPhantomEdge = true;
+    phantomPolylineEdge(e, s, t, color);
 
+    let subgraph = new model.Graph(graph.id + color, vertices, edges, name);
     return await orderGraph(subgraph);
 
     async function orderGraph(graph) {
         for (let vertex of graph.vertices) {
             let v = await vertex.orderEdgesCircularly();
-            v = await vertex.orderEdgesInOut();
+            v = await v.orderEdgesInOut();
         }
         return graph;
+    }
+
+    async function phantomPolylineEdge(edge, s, t, color) {
+        let edgeLayer = view.svg.querySelector("#edgeLayer");
+    
+        let svgEdge = view.createSVGElement("polyline");
+        let points = t.x + "," + t.y + " ";
+        if (color == model.colors.BLUE) {
+            points += t.x + "," + (parseInt(t.y) - 10) + " "
+            + s.x + "," + (parseInt(s.y) + 10) + " ";
+        } else {
+            points += (parseInt(t.x) + 10) + "," + t.y + " "
+            + (parseInt(s.x) - 10) + "," + s.y + " ";
+        }
+        points += s.x + "," + s.y;
+        svgEdge.setAttribute("points", points);
+        svgEdge.setAttribute("fill", "none");
+        svgEdge.setAttribute("stroke", "none");
+        svgEdge.id = "svg-" + edge.id;
+    
+        edgeLayer.append(svgEdge);
+    
+        svgEdge.edge = edge;
+        edge.svgEdge = svgEdge;
+    
+        return svgEdge;
     }
 }
 
@@ -425,7 +478,7 @@ export async function computeDual(graph) {
     // go up as long edge is rightmost incoming edge, say at w
     // then go up along edge after e at v until w
     // i) s & t
-    const s = new model.Vertex(0);
+    const s = new model.Vertex("f0");
     faces.push(s);
     const t = new model.Vertex("f" + faces.length);
     faces.push(t);
@@ -438,7 +491,7 @@ export async function computeDual(graph) {
     // dual edge has been added of in edge of v (or earlier)
     await computeEdges();
 
-    return new model.Graph("dg" + graph.id, faces, dualEdges);
+    return new model.Graph("dg" + graph.id, faces, dualEdges, graph.name + "Dual");
 
     async function computeFaces() {
         for (let v of graph.vertices) {
@@ -454,12 +507,13 @@ export async function computeDual(graph) {
             }
 
             // iv) points to s and t
-            if ((v.numIncomingEdges === 0) && (v.edges.length > 0)) {
+            if (v.isSource) {
                 // left outer boundary
                 v.leftFace = s;
                 let w = v;
                 let e = null;
-                while (w.numIncomingEdges < w.edges.length) {
+
+                while (!w.isSink && (w.numIncomingEdges < w.edges.length)) {
                     e = w.edges[w.numIncomingEdges];
                     e.leftFace = s;
                     w = e.target;
@@ -469,7 +523,7 @@ export async function computeDual(graph) {
                 // right outer boundary
                 v.rightFace = t;
                 w = v;
-                while (w.numIncomingEdges < w.edges.length) {
+                while (!w.isSink && (w.numIncomingEdges < w.edges.length)) {
                     e = w.edges[w.edges.length - 1];
                     e.rightFace = t;
                     w = e.target;
@@ -499,15 +553,25 @@ export async function computeDual(graph) {
         if (w.edges[w.numIncomingEdges - 1] === e) {
             w.leftFace = f;
             let eNext = w.edges[w.numIncomingEdges];
-            walkRightBoundary(eNext, f);
+            if (eNext == undefined) {
+                console.log("error");
+                console.log(eNext);
+                console.log(w);
+                return true;
+            }
+            if (await walkRightBoundary(eNext, f)) {
+                console.log(eNext);
+                console.log(w);
+            }
         }
+        return false;
     }
 
     async function computeEdges() {
         for (const e of graph.edges) {
             const v = e.source;
-            if ((v.edges.length !== 2) || (v.isIncomingEdge !== 1)) {
-                const dualEdge = new model.Edge("de" + dualEdges.length, e.leftFace, e.rightFace);
+            if ((v.edges.length !== 2) || (v.numIncomingEdges !== 1)) {
+                const dualEdge = new model.Edge("dual" + dualEdges.length, e.leftFace, e.rightFace);
                 dualEdges.push(dualEdge);
             }
         }
@@ -517,6 +581,7 @@ export async function computeDual(graph) {
 export async function computeTopologicalOrder(graph) {
     let highestIndex = 1;
     for (const v of graph.vertices) {
+        await v.setNumberIncomingEdges();
         if (v.numIncomingEdges === 0) {
             v.orderIndex = 1;
         } else {

@@ -16,12 +16,12 @@
     <!-- markers -->
     <svg width="0" height="0">
         <defs>
-            <marker id="arrowRed" orient="auto" markerUnits="strokeWidth" 
-            viewBox="0 0 9 9" markerWidth="9" markerHeight="9" refX="9" refY="3">
+            <marker id="arrowRed" orient="auto" markerUnits="strokeWidth" viewBox="0 0 9 9" markerWidth="9"
+                markerHeight="9" refX="10" refY="3">
                 <path class="red" d="M0,0 L1,3 L0,6 L8,3 z"></path>
             </marker>
-            <marker id="arrowBlue" orient="auto" markerUnits="strokeWidth" 
-            viewBox="0 0 9 9" markerWidth="9" markerHeight="9" refX="10" refY="3">
+            <marker id="arrowBlue" orient="auto" markerUnits="strokeWidth" viewBox="0 0 9 9" markerWidth="9"
+                markerHeight="9" refX="10" refY="3">
                 <path class="blue" d="M0,0 L1,3 L0,6 L8,3 z"></path>
             </marker>
         </defs>
@@ -68,13 +68,27 @@
                         Show flip cycles
                     </label>
                     <div class="toolbarRow">
-                        <input class="checkboxHidden" type="checkbox" id="cwFlips" name="tools" value="cwFlips">
-                        <label for="cwFlips" id="move">CW</label>
-                        <input class="checkboxHidden" type="checkbox" id="ccwFlips" name="tools" value="ccwFlips">
-                        <label for="ccwFlips" id="remove">CCW</label>
+                        <label id="cwAllFlipsLabel">&#x226A;</label>
+                        <input class="checkboxHidden" type="checkbox" id="cwFlips" value="cwFlips">
+                        <label for="cwFlips" id="cwFlipsLabel">&#x21BB;</label>
+                        <input class="checkboxHidden" type="checkbox" id="ccwFlips" value="ccwFlips">
+                        <label for="ccwFlips" id="ccwFlipsLabel">&#x21BA;</label>
+                        <label id="ccwAllFlipsLabel">&#x226B;</label>
                     </div>
                 </div>
                 <label id="computeRD">Compute RD</label>
+                <!-- <label id="adjustGraphtoRD">Adjust G to RD</label> -->
+                <div class="toolbarCheckbox">
+                    Show layers
+                    <div class="toolbarRow">
+                        <input class="checkboxHidden" type="checkbox" id="showLayerGraph" name="tools" value="showG">
+                        <label for="showLayerGraph" id="showLayerGraphLabel">G</label>
+                        <input class="checkboxHidden" type="checkbox" id="showLayerRD" name="tools" value="showRD">
+                        <label for="showLayerRD" id="showLayerRDLabel">RD</label>
+                        <input class="checkboxHidden" type="checkbox" id="showLayerRDGraph" name="tools" value="showRDG">
+                        <label for="showLayerRDGraph" id="showLayerRDGraphLabel">RDG</label>
+                    </div>
+                </div>
             </div>
         </aside>
 
@@ -94,9 +108,11 @@
         view.initSizes(document.getElementById("vertexSizeRange").value, document.getElementById("edgeWidthRange").value);
         initGraph();
 
+        // tools
         import { toolSelected } from "./scripts/controller.js";
         let tools = document.getElementById("toolbar").getElementsByClassName("mainMode");
         for (let tool of tools) {
+            console.log(tool);
             tool.checked = false;
             tool.addEventListener("input", function (event) {
                 controller.toolSelected(this, event);
@@ -108,13 +124,23 @@
         document.getElementById("saveSVG").addEventListener("click", controller.saveSVGHandler);
         document.getElementById("read-button").addEventListener('click', controller.readFileHandler);
         document.getElementById("checkGraph").addEventListener('click', controller.checkGraphHandler);
+
+        // algorithms
         document.getElementById("computeREL").addEventListener('click', controller.computeRELHandler);
         document.getElementById("showFlipCycles").addEventListener('click', controller.showFlipCyclesHandler);
+        document.getElementById("cwAllFlipsLabel").addEventListener('click', controller.showFlipCyclesHandler);
+        document.getElementById("ccwAllFlipsLabel").addEventListener('click', controller.showFlipCyclesHandler);
         document.getElementById("computeRD").addEventListener('click', controller.computeRDHandler);
 
-        // sliders
+        // showing & sliders
         document.getElementById("vertexSizeRange").addEventListener("input", controller.rangeEventHandler);
         document.getElementById("edgeWidthRange").addEventListener("input", controller.rangeEventHandler);
+        document.getElementById("showLayerGraph").addEventListener("change", controller.showLayersHandler);
+        document.getElementById("showLayerGraph").checked = true;
+        document.getElementById("showLayerRD").addEventListener("change", controller.showLayersHandler);
+        document.getElementById("showLayerRD").checked = true;
+        document.getElementById("showLayerRDGraph").addEventListener("change", controller.showLayersHandler);
+        document.getElementById("showLayerRDGraph").checked = false;
     </script>
 
 

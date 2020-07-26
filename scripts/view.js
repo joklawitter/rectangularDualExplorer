@@ -2,17 +2,27 @@
 
 import * as model from "./model.js";
 
-let svg = document.querySelector("#theSVG");
+export let svg = document.querySelector("#theSVG");
 
-const WIDTH = 700;
-const HEIGHT = 360;
-const PADDING = 10;
+export const WIDTH = 700;
+export const HEIGHT = 360;
+export const PADDING = 10;
+const OFFSET = 2;
 
 export function initSVG() {
     let layer = createSVGElement("g");
     layer.id = "rectangularDualLayer";
     svg.append(layer);
-    
+
+    layer = createSVGElement("g");
+    layer.id = "rectangularDualGraphELayer";
+    layer.classList.add("hidden");
+    svg.append(layer);
+    layer = createSVGElement("g");
+    layer.id = "rectangularDualGraphVLayer";
+    layer.classList.add("hidden");
+    svg.append(layer);
+
     layer = createSVGElement("g");
     layer.id = "highlightLayer";
     svg.append(layer);
@@ -57,31 +67,36 @@ export async function resetLayer(id) {
     }
 }
 
+export function showLayer(id) {
+    svg.querySelector("#" + id).classList.remove("hidden");
+}
+
+export function hideLayer(id) {
+    svg.querySelector("#" + id).classList.add("hidden");
+}
+
 export async function drawGraph(graph) {
     // draw vertices
     for (let vertex of graph.vertices) {
-        let svgVertex = drawVertex(vertex);
+        drawVertex(vertex);
     }
 
     // draw four outer edges
-    let width = 700;
-    let height = 350;
-    let padding = 10;
     let coordinates = {
-        x: padding,
-        y: padding
+        x: PADDING,
+        y: PADDING
     }
     // vertex order: W, S, E, N
     // edge order WN, NE, ES, SW
     drawPolylineFromToVia(graph.vertices[0].svgVertex, graph.vertices[3].svgVertex, coordinates, graph.edges[0]);
 
-    coordinates.x = width - padding;
+    coordinates.x = WIDTH - PADDING;
     drawPolylineFromToVia(graph.vertices[3].svgVertex, graph.vertices[2].svgVertex, coordinates, graph.edges[1]);
 
-    coordinates.y = height - padding;
+    coordinates.y = HEIGHT - PADDING;
     drawPolylineFromToVia(graph.vertices[2].svgVertex, graph.vertices[1].svgVertex, coordinates, graph.edges[2]);
 
-    coordinates.x = padding;
+    coordinates.x = PADDING;
     drawPolylineFromToVia(graph.vertices[1].svgVertex, graph.vertices[0].svgVertex, coordinates, graph.edges[3]);
 
     // draw other edges
@@ -90,8 +105,8 @@ export async function drawGraph(graph) {
     }
 }
 
-export async function drawVertex(vertex) {
-    let vertexLayer = svg.querySelector("#vertexLayer");
+export async function drawVertex(vertex, layer = "vertexLayer") {
+    let vertexLayer = svg.querySelector("#" + layer);
 
     let svgVertex = createSVGElement("circle");
     svgVertex.setAttribute("r", getComputedStyle(document.documentElement).getPropertyValue('--vertexSize'));
@@ -227,7 +242,7 @@ export function changeEdgeWidth(edgeWidth) {
 }
 
 export function highlightVertex(vertex) {
-    let hightlightLayer = svg.querySelector("#hightlightLayer");
+    let hightlightLayer = svg.querySelector("#highlightLayer");
 
     let svgHighlight = createSVGElement("circle");
     svgHighlight.setAttribute("r", getComputedStyle(document.documentElement).getPropertyValue('--vertexHighlightSize'));
@@ -256,9 +271,9 @@ export function hightlightFlipCycle(flipCycle) {
 
     let svgFlipCycle = createSVGElement("polygon");
     let points = flipCycle.u.svgVertex.getAttribute("cx") + "," + flipCycle.u.svgVertex.getAttribute("cy") + " "
-    + flipCycle.v.svgVertex.getAttribute("cx") + "," + flipCycle.v.svgVertex.getAttribute("cy") + " "
-    + flipCycle.w.svgVertex.getAttribute("cx") + "," + flipCycle.w.svgVertex.getAttribute("cy") + " "
-    + flipCycle.x.svgVertex.getAttribute("cx") + "," + flipCycle.x.svgVertex.getAttribute("cy");
+        + flipCycle.v.svgVertex.getAttribute("cx") + "," + flipCycle.v.svgVertex.getAttribute("cy") + " "
+        + flipCycle.w.svgVertex.getAttribute("cx") + "," + flipCycle.w.svgVertex.getAttribute("cy") + " "
+        + flipCycle.x.svgVertex.getAttribute("cx") + "," + flipCycle.x.svgVertex.getAttribute("cy");
     svgFlipCycle.setAttribute("points", points);
     svgFlipCycle.setAttribute("stroke", "none");
     svgFlipCycle.setAttribute("fill-opacity", 0.5);
@@ -277,16 +292,13 @@ export function hightlightFlipCycle(flipCycle) {
 }
 
 export function drawRectangle(vertex, xmax, ymax) {
-    // console.log("draw rectangle");
-    // console.log(vertex);
-    let offset = 1;
-    let xStep = (WIDTH - 2) / xmax;
-    let yStep = (HEIGHT - 2) / ymax;
-    
+    let xStep = (WIDTH - 2 * OFFSET) / xmax;
+    let yStep = (HEIGHT - 2 * OFFSET) / ymax;
+
     let rectangularDualLayer = svg.querySelector("#rectangularDualLayer");
     let svgRect = createSVGElement("rect");
-    svgRect.setAttribute("x", offset + vertex.rectangle.x1 * xStep);
-    svgRect.setAttribute("y", offset + vertex.rectangle.y1 * yStep);
+    svgRect.setAttribute("x", OFFSET + vertex.rectangle.x1 * xStep);
+    svgRect.setAttribute("y", OFFSET + vertex.rectangle.y1 * yStep);
     svgRect.setAttribute("width", (vertex.rectangle.x2 * xStep - vertex.rectangle.x1 * xStep));
     svgRect.setAttribute("height", (vertex.rectangle.y2 * yStep - vertex.rectangle.y1 * yStep));
     svgRect.setAttribute("stroke", "darkgray");
@@ -295,11 +307,90 @@ export function drawRectangle(vertex, xmax, ymax) {
 
     vertex.svgRect = svgRect;
     svgRect.vertex = vertex;
+    svgRect.rectangle = vertex.rectangle;
+}
+
+export async function drawRDGraph(graph) {
+    let xStep = (WIDTH - 2 * OFFSET) / graph.xmax;
+    let yStep = (HEIGHT - 2 * OFFSET) / graph.ymax;
+
+    // copy vertices
+    let copies = []
+    for (let i = 0; i < graph.vertices.length; i++) {
+        const v = graph.vertices[i];
+        const x = OFFSET + (v.rectangle.x1 + v.rectangle.x2) / 2 * xStep;
+        const y = OFFSET + (v.rectangle.y1 + v.rectangle.y2) / 2 * yStep;
+        let copy = new model.Vertex("rd" + i, x, y);
+        copy.original = v;
+        let svgVertex = drawVertex(copy, "rectangularDualGraphVLayer");
+        svgVertex.vertex = copy;
+        svgVertex.original = v;
+        copies[i] = copy;
+    }
+
+    // draw edges
+    for (const edge of graph.edges) {
+        const s = edge.source;
+        const sCopy = copies[edge.source.id];
+        const t = edge.target;
+        const tCopy = copies[edge.target.id];
+        let midpoint = {
+            x: 0,
+            y: 0
+        }
+        if ((edge.color === model.colors.RED) || (edge.id == "e0") || (edge.id == "e2")) {
+            midpoint.x = OFFSET + s.rectangle.x2 * xStep;
+            let yCoords = [s.rectangle.y1, s.rectangle.y2, t.rectangle.y1, t.rectangle.y2];
+            yCoords.sort((a, b) => (b - a));
+            midpoint.y = OFFSET + (yCoords[1] + yCoords[2]) / 2 * yStep;
+        } else if ((edge.color === model.colors.BLUE) || (edge.id === "e1") || (edge.id === "e3")) {
+            midpoint.y = OFFSET + s.rectangle.y1 * yStep;
+            let xCoords = [s.rectangle.x1, s.rectangle.x2, t.rectangle.x1, t.rectangle.x2];
+            xCoords.sort((a, b) => (b - a));
+            midpoint.x = OFFSET + (xCoords[1] + xCoords[2]) / 2 * xStep;
+        } else {
+            console.log("Problem: edge of unknown color");
+            console.log(edge);
+            continue
+        }
+
+        let line = drawRDEdge(sCopy, tCopy, midpoint, edge.color);
+    }
+
+    //draw vertices
+    for (const v of graph.vertices) {
+
+
+    }
+
+    function drawRDEdge(startVertex, targetVertex, midpoint, color) {
+        let rectangularDualGraphLayer = svg.querySelector("#rectangularDualGraphELayer");
+
+        let svgEdge = createSVGElement("polyline");
+        let points = startVertex.x + "," + startVertex.y + " "
+            + midpoint.x + "," + midpoint.y + " "
+            + targetVertex.x + "," + targetVertex.y;
+        svgEdge.setAttribute("points", points);
+        svgEdge.setAttribute("fill", "none");
+        svgEdge.setAttribute("style", "stroke-width: "
+            + getComputedStyle(document.documentElement).getPropertyValue('--edgeWidth'));
+
+        if (color === model.colors.RED) {
+            svgEdge.setAttribute("stroke", getComputedStyle(document.documentElement).getPropertyValue('--redStroke'));
+        } else if (color === model.colors.BLUE) {
+            svgEdge.setAttribute("stroke", getComputedStyle(document.documentElement).getPropertyValue('--blueStroke'));
+        }
+
+        rectangularDualGraphLayer.append(svgEdge);
+
+        return svgEdge;
+    }
+
 }
 
 const SVGNS = "http://www.w3.org/2000/svg";
 
-function createSVGElement(tagName) {
+export function createSVGElement(tagName) {
     return document.createElementNS(SVGNS, tagName);
 }
 

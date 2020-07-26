@@ -93,6 +93,13 @@ body {
 .toolbarRow {
     display: flex;
     flex-direction: row;
+    align-items: center;
+}
+
+.toolbarRow label {
+    padding: 0.2em;
+    margin-right: 0.3em;
+    margin-top: 0.5em;
 }
 
 .toolbarRow  input[type="checkbox"]:checked+label {

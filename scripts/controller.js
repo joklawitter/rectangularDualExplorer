@@ -12,25 +12,28 @@ export function toolSelected(element) {
     }
 
     if (element.value == "drawGraph") {
-        if (model.graph.vertices.length == 0) {
-            addOuterFourCycle(svg);
-        }
-
         let drawToolbar = document.querySelector("#drawToolbar")
         drawToolbar.classList.remove("hidden");
-
-        // select add as default
-        svg.addEventListener("click", addModeHandler);
-        drawingMode = "add";
-        document.querySelector("#addRadio").checked = true;
-
         for (let tool of drawToolbar.getElementsByClassName("drawMode")) {
             tool.addEventListener("input", drawModeHandler);
+        }
+
+        if (model.graph.vertices.length == 0) {
+            addOuterFourCycle(svg);
+
+            // select add as default
+            svg.addEventListener("click", addModeHandler);
+            drawingMode = "add";
+            document.querySelector("#addRadio").checked = true;
+
+        } else {
+            drawingMode = "move";
+            document.querySelector("#moveRadio").checked = true;
+            setDragMode();
         }
     } else {
         drawingMode = "none";
         document.querySelector("#drawToolbar").classList.add("hidden");
-
     }
 }
 
@@ -197,11 +200,11 @@ let edgeClickHandler = {
 }
 
 export async function addOuterFourCycle(svg) {
-    let width = 700;
-    let height = 360;
+    let width = view.WIDTH;
+    let height = view.HEIGHT;
 
     // order: W, N, E, S
-    let padding = 10;
+    let padding = view.PADDING;
     let coordinates = {
         x: padding,
         y: height / 2
@@ -227,19 +230,20 @@ export async function addOuterFourCycle(svg) {
     addOuterEdgeFromToVia(svgVertexW, svgVertexN, coordinates);
 
     coordinates.x = width - padding;
-    addOuterEdgeFromToVia(svgVertexN, svgVertexE, coordinates);
+    addOuterEdgeFromToVia(svgVertexE, svgVertexN, coordinates);
 
     coordinates.y = height - padding;
-    addOuterEdgeFromToVia(svgVertexE, svgVertexS, coordinates);
+    addOuterEdgeFromToVia(svgVertexS, svgVertexE, coordinates);
 
     coordinates.x = padding;
     addOuterEdgeFromToVia(svgVertexS, svgVertexW, coordinates);
-}
 
-function addOuterEdgeFromToVia(startVertex, targetVertex, midpoint) {
-    let edge = new model.Edge("e" + model.graph.edges.length, startVertex.vertex, targetVertex.vertex);
-    model.graph.addEdge(edge);
-    view.drawPolylineFromToVia(startVertex, targetVertex, midpoint, edge);
+    function addOuterEdgeFromToVia(startVertex, targetVertex, midpoint) {
+        let edge = new model.Edge("e" + model.graph.edges.length, startVertex.vertex, targetVertex.vertex);
+        model.graph.addEdge(edge);
+        view.drawPolylineFromToVia(startVertex, targetVertex, midpoint, edge);
+        return edge;
+    }
 }
 
 let selectedVertex = null;
@@ -345,6 +349,9 @@ export let readFileHandler = {
             for (let vertex of model.graph.vertices) {
                 vertex.svgVertex.addEventListener("click", vertexClickHandler);
             }
+            for (let i = 4; i < model.graph.edges.length; i++) {
+                model.graph.edges[i].svgEdge.addEventListener("click", edgeClickHandler);
+            }
         });
 
         // file reading failed
@@ -370,35 +377,32 @@ export let checkGraphHandler = {
         view.resetLayer("highlightLayer");
         console.log("> check graph properties");
         await model.graph.computeEdgeOrders();
-        if (model.graph.hasSeparatingTriangle()) {
+        if (await model.graph.hasSeparatingTriangle()) {
             console.log("Error, graph has separating triangle.");
         }
-        if (!model.graph.isTriangulated()) {
+        if (!(await model.graph.isTriangulated())) {
             console.log("Error, graph is not triangulated.");
         }
-
     }
 }
 
 export let computeRELHandler = {
-    async handleEvent(event) {
-        console.log(">  process to compute REL");
+    async handleEvent() {
+        resetDrawMode();
+        console.log("> compute REL");
         console.log("i) check if PTP graph");
         await model.graph.computeEdgeOrders();
-        if (model.graph.hasSeparatingTriangle()) {
+        if (await model.graph.hasSeparatingTriangle()) {
             console.log("Error, graph has separating triangle.");
             return;
         }
-        if (!model.graph.isTriangulated()) {
+        if (!(await model.graph.isTriangulated())) {
             console.log("Error, graph is not triangulated.");
             return;
         }
 
         console.log("ii) compute canonical order");
         const canonicalOrder = algorithms.computeCanonicalOrder(model.graph);
-        // for (let vertex of canonicalOrder) {
-        //     console.log(vertex);
-        // }
 
         console.log("iii) orient edges according to order");
         await algorithms.engrainCanonicalOrder(model.graph, canonicalOrder);
@@ -413,41 +417,138 @@ export let showFlipCyclesHandler = {
         // clean up
         model.graph.flipCycles = null;
         view.resetLayer("flipCyclesLayer");
+        resetRD();
 
-        // recompute
-        console.log("> find flip circle");
-        let flipCycles = algorithms.findFlipCycles(model.graph);
-        model.graph.flipCycles = flipCycles;
+        // (re)compute
+        if (event.currentTarget.id == "showFlipCycles") {
+            console.log("> find flip cycles");
+            let flipCycles = computeFlipCycles();
 
-        let showCWFlips = document.querySelector("#cwFlips").checked;
-        let showCCWFlips = document.querySelector("#ccwFlips").checked;
+            let showCWFlips = document.querySelector("#cwFlips").checked;
+            let showCCWFlips = document.querySelector("#ccwFlips").checked;
 
-        for (const flipCycle of flipCycles) {
-            if (((flipCycle.orientation === model.orientations.CW) && showCWFlips)
-                || ((flipCycle.orientation === model.orientations.CCW) && showCCWFlips)) {
-                view.hightlightFlipCycle(flipCycle);
-                flipCycle.svgFlipCycle.addEventListener("click", flipCycleHandler);
+            for (const flipCycle of flipCycles) {
+                if (((flipCycle.orientation === model.orientations.CW) && showCWFlips)
+                    || ((flipCycle.orientation === model.orientations.CCW) && showCCWFlips)) {
+                    view.hightlightFlipCycle(flipCycle);
+                    flipCycle.svgFlipCycle.addEventListener("click", flipCycleHandler);
+                }
             }
+        } else if ((event.currentTarget.id == "cwAllFlipsLabel") || (event.currentTarget.id == "ccwAllFlipsLabel")) {
+            console.log("> flip all c/cw flip cycles");
+            let orientation = (event.currentTarget.id == "ccwAllFlipsLabel") ? model.orientations.CCW : model.orientations.CW;
+            let flippedACycle = false;
+            do {
+                flippedACycle = false;
+                let flipCycles = computeFlipCycles();
+                for (const flipCycle of flipCycles) {
+                    if (flipCycle.orientation === orientation) {
+                        model.graph.flipFlipCycle(flipCycle);
+                        model.graph.flipCycles = null;
+                        flippedACycle = true;
+                        break;
+                    }
+                }
+            } while (flippedACycle)
+            console.log("no c/cw flip left");
         }
 
+        function computeFlipCycles() {
+            let flipCycles = algorithms.findFlipCycles(model.graph);
+            model.graph.flipCycles = flipCycles;
+            return flipCycles;
+        }
     }
 }
 
 export let flipCycleHandler = {
     handleEvent(event) {
+        resetRD();
         let svgFlipCycle = event.target;
         model.graph.flipFlipCycle(svgFlipCycle.flipCycle);
 
         model.graph.flipCycles = null;
         view.resetLayer("flipCyclesLayer");
 
-        showFlipCyclesHandler.handleEvent(null);
+        showFlipCyclesHandler.handleEvent({
+            'currentTarget': {
+                'id': "showFlipCycles"
+            }
+        });
     }
 }
 
 export let computeRDHandler = {
-    async handleEvent(event) {
+    async handleEvent() {
+        resetDrawMode();
+        view.resetLayer("flipCyclesLayer");
+        if (!model.graph.hasREL) {
+            await computeRELHandler.handleEvent();
+        }
         console.log("> compute rectangular dual");
         await algorithms.computeRectangularDual(model.graph);
+        view.drawRDGraph(model.graph);
     }
+}
+
+export let showLayersHandler = {
+    handleEvent(event) {
+        let selection = event.target;
+        if (selection.value === "showG") {
+            if (selection.checked) {
+                view.showLayer("edgeLayer");
+                view.showLayer("vertexLayer");
+                view.showLayer("highlightLayer");
+                view.hideLayer("rectangularDualGraphELayer");
+                view.hideLayer("rectangularDualGraphVLayer");
+                document.getElementById("showLayerRDGraph").checked = false;
+            } else {
+                view.hideLayer("edgeLayer");
+                view.hideLayer("vertexLayer");
+                view.hideLayer("highlightLayer");
+            }
+        } else if (selection.value === "showRD") {
+            if (selection.checked) {
+                view.showLayer("rectangularDualLayer");
+            } else {
+                view.hideLayer("rectangularDualLayer");
+            }
+        } else if (selection.value === "showRDG") {
+            if (selection.checked) {
+                view.hideLayer("edgeLayer");
+                view.hideLayer("vertexLayer");
+                view.hideLayer("highlightLayer");
+                view.showLayer("rectangularDualGraphELayer");
+                view.showLayer("rectangularDualGraphVLayer");
+                document.getElementById("showLayerGraph").checked = false;
+            } else {
+                view.hideLayer("rectangularDualGraphELayer");
+                view.hideLayer("rectangularDualGraphVLayer");
+            }
+        }
+    }
+}
+
+function resetRD() {
+    view.resetLayer("rectangularDualLayer");
+    view.resetLayer("rectangularDualGraphELayer");
+    view.resetLayer("rectangularDualGraphVLayer");
+    for (const vertex of model.graph.vertices) {
+        vertex.rectangle = null;
+    }
+}
+
+function resetDrawMode() {
+    if (svg == null) {
+        svg = document.querySelector("#theSVG");
+    }
+
+    drawingMode = "none";
+    document.querySelector("#drawToolbar").classList.add("hidden");
+    svg.removeEventListener("click", addModeHandler);
+    endDragMode();
+
+    document.querySelector("#addRadio").checked = false;
+    document.querySelector("#moveRadio").checked = false;
+    document.querySelector("#removeRadio").checked = false;
 }
