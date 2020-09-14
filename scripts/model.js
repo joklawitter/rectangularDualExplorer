@@ -29,8 +29,7 @@ export class Graph {
         }
     }
 
-    static parseGraph(JSONstring) {
-        let JSONgraph = JSON.parse(JSONstring);
+    static parseGraph(JSONgraph) {
         let vertices = [];
         let edges = [];
 

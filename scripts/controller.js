@@ -324,6 +324,8 @@ export let readFileHandler = {
 
         // first file selected by user
         const file = document.querySelector("#file-input").files[0];
+        console.log("this is files[0]:" + file);
+        console.log(file);
 
         // perform validation on file type & size if required
 
@@ -339,19 +341,9 @@ export let readFileHandler = {
         reader.addEventListener('load', async function (event) {
             // contents of file in variable     
             let text = event.target.result;
+            console.log(text);
 
-            model.Graph.parseGraph(text);
-            console.log(model.graph);
-
-            await view.resetSVG();
-            await view.drawGraph(model.graph);
-
-            for (let vertex of model.graph.vertices) {
-                vertex.svgVertex.addEventListener("click", vertexClickHandler);
-            }
-            for (let i = 4; i < model.graph.edges.length; i++) {
-                model.graph.edges[i].svgEdge.addEventListener("click", edgeClickHandler);
-            }
+            await loadGraphIntoSVG(JSON.parse(text));
         });
 
         // file reading failed
@@ -369,6 +361,56 @@ export let readFileHandler = {
 
         // read as text file
         reader.readAsText(file);
+    }
+}
+
+async function loadGraphIntoSVG(JSONgraph) {
+    model.Graph.parseGraph(JSONgraph);
+    console.log(model.graph);
+
+    await view.resetSVG();
+    await view.drawGraph(model.graph);
+
+    for (let vertex of model.graph.vertices) {
+        vertex.svgVertex.addEventListener("click", vertexClickHandler);
+    }
+    for (let i = 4; i < model.graph.edges.length; i++) {
+        model.graph.edges[i].svgEdge.addEventListener("click", edgeClickHandler);
+    }
+}
+
+export function initExamples() {
+    document.getElementById("examplesButton").addEventListener("click", () => {
+        console.log("clicked drop down button");
+        document.getElementById("examplesDropDown").classList.toggle("hidden");
+    })
+
+    document.getElementById("n75").addEventListener("click", loadExampleHandler);
+    document.getElementById("n34").addEventListener("click", loadExampleHandler);
+}
+
+export let loadExampleHandler = {
+    async handleEvent(event) {
+        let filename = null;
+        switch (event.target.id) {
+            case "n75":
+                filename = "./examples/graph-n75.json";
+                break;
+            case "n34":
+                filename = "./examples/graph-n34.json";
+                break;
+        }
+
+        if (filename) {
+            let response = await fetch(filename);
+            if (response.ok) { // if HTTP-status is 200-299
+                // get the response body (the method explained below)
+                let JSONgraph = await response.json();
+                loadGraphIntoSVG(JSONgraph);
+            } else {
+                alert("HTTP-Error: " + response.status);
+            }
+        }
     }
 }
 

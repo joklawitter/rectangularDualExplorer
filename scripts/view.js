@@ -401,3 +401,4 @@ export function translateDOMtoSVGcoordinates(x, y) {
     let svgCoordinates = point.matrixTransform(svg.getScreenCTM().inverse());
     return svgCoordinates;
 }
+

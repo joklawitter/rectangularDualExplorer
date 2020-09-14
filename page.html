@@ -49,17 +49,24 @@
                 </div>
                 <label id="saveGraph">Save graph</label>
                 <div class="buttonTool">
-                    <input type="file" id="file-input" />
+                    <input type="file" id="file-input" accept="application/json"/>
                     <label id="read-button">Load graph</label>
+                </div>
+                <div class="buttonTool dropdown">
+                    <label id="examplesButton" class="dropbtn">Load example</label>
+                    <div id="examplesDropDown" class="dropdownContent hidden">
+                        <a id="n75">Graph n75</a>
+                        <a id="n34">Graph n34</a>
+                    </div>
                 </div>
                 <label id="saveSVG">Save SVG</label>
                 <div class="toolbarRange">
                     Vertex size
-                    <input type="range" min="1" max="20" value="7" class="slider" id="vertexSizeRange">
+                    <input type="range" min="1" max="20" value="4" class="slider" id="vertexSizeRange">
                 </div>
                 <div class="toolbarRange">
                     Edge size
-                    <input type="range" min="1" max="10" value="2" class="slider" id="edgeWidthRange">
+                    <input type="range" min="1" max="10" value="1" class="slider" id="edgeWidthRange">
                 </div>
                 <label id="checkGraph">Check graph</label>
                 <label id="computeREL">Compute REL</label>
@@ -85,7 +92,8 @@
                         <label for="showLayerGraph" id="showLayerGraphLabel">G</label>
                         <input class="checkboxHidden" type="checkbox" id="showLayerRD" name="tools" value="showRD">
                         <label for="showLayerRD" id="showLayerRDLabel">RD</label>
-                        <input class="checkboxHidden" type="checkbox" id="showLayerRDGraph" name="tools" value="showRDG">
+                        <input class="checkboxHidden" type="checkbox" id="showLayerRDGraph" name="tools"
+                            value="showRDG">
                         <label for="showLayerRDGraph" id="showLayerRDGraphLabel">RDG</label>
                     </div>
                 </div>
@@ -107,12 +115,13 @@
         view.initSVG();
         view.initSizes(document.getElementById("vertexSizeRange").value, document.getElementById("edgeWidthRange").value);
         initGraph();
+        controller.initExamples();
 
         // tools
         import { toolSelected } from "./scripts/controller.js";
         let tools = document.getElementById("toolbar").getElementsByClassName("mainMode");
         for (let tool of tools) {
-            console.log(tool);
+            // console.log(tool);
             tool.checked = false;
             tool.addEventListener("input", function (event) {
                 controller.toolSelected(this, event);
@@ -141,6 +150,21 @@
         document.getElementById("showLayerRD").checked = true;
         document.getElementById("showLayerRDGraph").addEventListener("change", controller.showLayersHandler);
         document.getElementById("showLayerRDGraph").checked = false;
+        document.getElementById("cwFlips").checked = true;
+        document.getElementById("ccwFlips").checked = true;
+
+
+        // example dropdown menu
+        function showDropDown() {
+            console.log("clicked drop down button");
+            document.getElementById("examplesDropDown").classList.toggle("hidden");
+        }
+
+        window.onclick = function (event) {
+            if (!event.target.matches('.dropbtn')) {
+                document.getElementById("examplesDropDown").classList.add("hidden");
+            }
+        }
     </script>
 
 
