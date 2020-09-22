@@ -111,8 +111,16 @@ body {
     margin-top: 0.5em;
 }
 
-.toolbarRow  input[type="checkbox"]:checked+label {
+.toolbarRow  input[type="checkbox"]:checked + label {
     background-color: #cae6f7;
+}
+
+#cwFlips:checked + label {
+    background-color: #ff80007e;
+}
+
+#ccwFlips:checked + label {
+    background-color: #29a02d71;
 }
 
 svg {

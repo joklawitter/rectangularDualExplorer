@@ -465,12 +465,19 @@ export let showFlipCyclesHandler = {
         resetRD();
 
         // (re)compute
-        if (event.currentTarget.id == "showFlipCycles") {
+        if ((event.currentTarget.id == "showFlipCycles") || (event.currentTarget.id == "cwFlipsLabel")
+            || (event.currentTarget.id == "ccwFlipsLabel")) {
             console.log("> find flip cycles");
             let flipCycles = computeFlipCycles();
 
             let showCWFlips = document.querySelector("#cwFlips").checked;
+            if (event.currentTarget.id == "cwFlipsLabel") {
+                showCWFlips = !showCWFlips;
+            }
             let showCCWFlips = document.querySelector("#ccwFlips").checked;
+            if (event.currentTarget.id == "ccwFlipsLabel") {
+                showCCWFlips = !showCCWFlips;
+            }
 
             for (const flipCycle of flipCycles) {
                 if (((flipCycle.orientation === model.orientations.CW) && showCWFlips)
@@ -525,7 +532,10 @@ export let flipCycleHandler = {
 
 export let computeRDHandler = {
     async handleEvent() {
-        resetDrawMode();
+        if (drawingMode != "highlight") {
+            resetDrawMode();
+        }
+
         view.resetLayer("flipCyclesLayer");
         if (!model.graph.hasREL) {
             await computeRELHandler.handleEvent();

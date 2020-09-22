@@ -269,6 +269,10 @@ export function highlightVertex(vertex) {
     svgHighlight.classList.add("highlight");
     svgHighlight.id = "svg-highlight-" + vertex.id;
 
+    if (vertex.svgRect != null) {
+        vertex.svgRect.setAttribute("fill", getComputedStyle(document.documentElement).getPropertyValue('--highlightFill'));
+    }
+
     vertex.svgHighlight = svgHighlight;
     svgHighlight.vertex = vertex;
 
@@ -281,6 +285,7 @@ export function unhighlightVertex(vertex) {
     if (svgHighlight != null) {
         svgHighlight.remove();
         vertex.svgHighlight = null;
+        vertex.svgRect.setAttribute("fill", "none");
     }
 }
 
@@ -309,8 +314,6 @@ export function unhighlightEdge(edge) {
         edge.svgHighlight = null;
     }
 }
-
-
 
 export function hightlightFlipCycle(flipCycle) {
     let flipCyclesLayer = svg.querySelector("#flipCyclesLayer");
@@ -348,7 +351,11 @@ export function drawRectangle(vertex, xmax, ymax) {
     svgRect.setAttribute("width", (vertex.rectangle.x2 * xStep - vertex.rectangle.x1 * xStep));
     svgRect.setAttribute("height", (vertex.rectangle.y2 * yStep - vertex.rectangle.y1 * yStep));
     svgRect.setAttribute("stroke", "darkgray");
-    svgRect.setAttribute("fill", "none");
+    if (vertex.svgHighlight != null) {
+        svgRect.setAttribute("fill", getComputedStyle(document.documentElement).getPropertyValue('--highlightFill'));
+    } else {
+        svgRect.setAttribute("fill", "none");
+    }
     rectangularDualLayer.append(svgRect);
 
     vertex.svgRect = svgRect;

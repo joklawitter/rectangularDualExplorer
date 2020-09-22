@@ -1,7 +1,8 @@
 :root {
     --vertexSize: 4;
-    --highlightDifference: 3;
     --edgeWidth: 1;
+    --highlightDifference: 3;
+    --highlightFill: #facc9f;
     --redStroke: #E31A1C;
     --blueStroke: #1F78B4;
     --greenStroke: #29A02C;

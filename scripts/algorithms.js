@@ -297,10 +297,6 @@ export function findFlipCycles(graph) {
                                                 'xe': xe,
                                                 'orientation': orientation
                                             })
-                                            // view.highlightVertex(u);
-                                            // view.highlightVertex(v);
-                                            // view.highlightVertex(w);
-                                            // view.highlightVertex(x);
                                         }
                                     }
                                 }

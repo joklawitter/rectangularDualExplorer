@@ -136,12 +136,8 @@
         import { toolSelected } from "./scripts/controller.js";
         let tools = document.getElementById("toolbar").getElementsByClassName("drawMode");
         for (let tool of tools) {
-            // console.log(tool);
             tool.checked = false;
             controller.toolSelected(tool);
-            // tool.addEventListener("input", function (event) {
-            //     controller.toolSelected(this, event);
-            // });
         }
 
         // saving, loading, checking
@@ -153,6 +149,8 @@
         // algorithms
         document.getElementById("computeREL").addEventListener('click', controller.computeRELHandler);
         document.getElementById("showFlipCycles").addEventListener('click', controller.showFlipCyclesHandler);
+        document.getElementById("cwFlipsLabel").addEventListener('click', controller.showFlipCyclesHandler);
+        document.getElementById("ccwFlipsLabel").addEventListener('click', controller.showFlipCyclesHandler);
         document.getElementById("cwAllFlipsLabel").addEventListener('click', controller.showFlipCyclesHandler);
         document.getElementById("ccwAllFlipsLabel").addEventListener('click', controller.showFlipCyclesHandler);
         document.getElementById("computeRD").addEventListener('click', controller.computeRDHandler);
