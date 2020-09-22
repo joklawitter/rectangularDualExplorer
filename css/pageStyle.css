@@ -56,6 +56,14 @@ body {
     margin-right: 0.5em;
 }
 
+.toolbarCheckbox {
+    flex-direction: column; 
+}
+
+.toolbarRange {
+    flex-direction: row; 
+}
+
 .toolbarRange input[type="range"] {
     -webkit-appearance: none;
     width: 100%;
@@ -93,6 +101,7 @@ body {
 .toolbarRow {
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
 }
 
@@ -116,13 +125,14 @@ svg {
 }
 
 .dropbtn {
+    position: relative;
     cursor: pointer;
 }
 
 .dropdownContent {
     position: absolute;
-    margin-top: 168px;
-    margin-left: 9px;
+    margin-top: 10px;
+    margin-left: 0px;
     background-color: #f1f1f1;
     overflow: auto;
     box-shadow: 0 1px 3px rgba(0,0,0,0.12);
@@ -135,6 +145,6 @@ svg {
     display: block;
 }
 
-.dropdown a:hover {
+.dropdownContent a:hover {
     background-color: #ddd;
 }

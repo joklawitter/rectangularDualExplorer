@@ -37,7 +37,7 @@
         <aside style="width: 10%;">
             Tools: <br>
             <div class="toolbar" id="toolbar">
-                <input class="mainMode" type="radio" id="drawGraphRadio" name="tools" value="drawGraph">
+                <!-- <input class="mainMode" type="radio" id="drawGraphRadio" name="tools" value="drawGraph">
                 <label for="drawGraphRadio" id="drawGraph">Draw graph</label>
                 <div class="subtoolbar hidden" id="drawToolbar">
                     <input class="drawMode" type="radio" id="addRadio" name="tools" value="add">
@@ -46,19 +46,35 @@
                     <label for="moveRadio" id="move">Move</label>
                     <input class="drawMode" type="radio" id="removeRadio" name="tools" value="remove">
                     <label for="removeRadio" id="remove">Remove</label>
-                </div>
-                <label id="saveGraph">Save graph</label>
+                </div> -->
+                <label>
+                    Graph modes
+                    <div class="toolbarRow" id="graphModes">
+                        <input class="checkboxHidden drawMode" type="radio" id="addRadio" name="tools" value="add">
+                        <label for="addRadio" id="add">Add</label>
+                        <input class="checkboxHidden drawMode" type="radio" id="moveRadio" name="tools" value="move">
+                        <label for="moveRadio" id="move">Move</label>
+                        <input class="checkboxHidden drawMode" type="radio" id="removeRadio" name="tools"
+                            value="remove">
+                        <label for="removeRadio" id="remove">Delete</label>
+                        <label id="checkGraph">Check</label>
+                        <input class="checkboxHidden drawMode" type="radio" id="highlightRadio" name="tools"
+                            value="highlight">
+                        <label for="highlightRadio" id="highlight">Highlight</label>
+                    </div>
+                </label>
                 <div class="buttonTool">
-                    <input type="file" id="file-input" accept="application/json"/>
+                    <input type="file" id="file-input" accept="application/json" />
                     <label id="read-button">Load graph</label>
                 </div>
-                <div class="buttonTool dropdown">
-                    <label id="examplesButton" class="dropbtn">Load example</label>
+                <label id="examplesButton" class="dropbtn">Load example
                     <div id="examplesDropDown" class="dropdownContent hidden">
                         <a id="n75">Graph n75</a>
+                        <a id="n58">Graph n58</a>
                         <a id="n34">Graph n34</a>
                     </div>
-                </div>
+                </label>
+                <label id="saveGraph">Save graph</label>
                 <label id="saveSVG">Save SVG</label>
                 <div class="toolbarRange">
                     Vertex size
@@ -68,7 +84,6 @@
                     Edge size
                     <input type="range" min="1" max="10" value="1" class="slider" id="edgeWidthRange">
                 </div>
-                <label id="checkGraph">Check graph</label>
                 <label id="computeREL">Compute REL</label>
                 <div class="toolbarCheckbox">
                     <label id="showFlipCycles">
@@ -85,8 +100,8 @@
                 </div>
                 <label id="computeRD">Compute RD</label>
                 <!-- <label id="adjustGraphtoRD">Adjust G to RD</label> -->
-                <div class="toolbarCheckbox">
-                    Show layers
+                <div class="toolbarCheckbox" style="flex-direction: row">
+                    Shown layers
                     <div class="toolbarRow">
                         <input class="checkboxHidden" type="checkbox" id="showLayerGraph" name="tools" value="showG">
                         <label for="showLayerGraph" id="showLayerGraphLabel">G</label>
@@ -119,13 +134,14 @@
 
         // tools
         import { toolSelected } from "./scripts/controller.js";
-        let tools = document.getElementById("toolbar").getElementsByClassName("mainMode");
+        let tools = document.getElementById("toolbar").getElementsByClassName("drawMode");
         for (let tool of tools) {
             // console.log(tool);
             tool.checked = false;
-            tool.addEventListener("input", function (event) {
-                controller.toolSelected(this, event);
-            });
+            controller.toolSelected(tool);
+            // tool.addEventListener("input", function (event) {
+            //     controller.toolSelected(this, event);
+            // });
         }
 
         // saving, loading, checking

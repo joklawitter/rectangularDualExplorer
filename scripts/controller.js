@@ -10,31 +10,7 @@ export function toolSelected(element) {
     if (svg == null) {
         svg = document.querySelector("#theSVG");
     }
-
-    if (element.value == "drawGraph") {
-        let drawToolbar = document.querySelector("#drawToolbar")
-        drawToolbar.classList.remove("hidden");
-        for (let tool of drawToolbar.getElementsByClassName("drawMode")) {
-            tool.addEventListener("input", drawModeHandler);
-        }
-
-        if (model.graph.vertices.length == 0) {
-            addOuterFourCycle(svg);
-
-            // select add as default
-            svg.addEventListener("click", addModeHandler);
-            drawingMode = "add";
-            document.querySelector("#addRadio").checked = true;
-
-        } else {
-            drawingMode = "move";
-            document.querySelector("#moveRadio").checked = true;
-            setDragMode();
-        }
-    } else {
-        drawingMode = "none";
-        document.querySelector("#drawToolbar").classList.add("hidden");
-    }
+    element.addEventListener("input", drawModeHandler);
 }
 
 let drawingMode = "none";
@@ -43,6 +19,9 @@ let drawModeHandler = {
     handleEvent(event) {
         switch (event.currentTarget.value) {
             case "add":
+                if (model.graph.vertices.length == 0) {
+                    addOuterFourCycle(svg);
+                }
                 drawingMode = "add";
                 svg.addEventListener("click", addModeHandler);
                 endDragMode();
@@ -54,6 +33,11 @@ let drawModeHandler = {
                 break;
             case "remove":
                 drawingMode = "remove";
+                endDragMode();
+                break;
+            case "highlight":
+                drawingMode = "highlight";
+                endDragMode();
                 break;
         }
     }
@@ -121,7 +105,6 @@ async function addVertex(coordinates) {
 
 let vertexClickHandler = {
     async handleEvent(event) {
-        console.log("vertex clicked");
         event.stopPropagation();
         if (drawingMode === "add") {
             if (startVertex == null) {
@@ -138,6 +121,14 @@ let vertexClickHandler = {
             let svgVertex = event.currentTarget;
             let vertex = svgVertex.vertex;
             model.graph.removeVertex(vertex);
+        } else if (drawingMode === "highlight") {
+            const svgVertex = event.currentTarget;
+            const vertex = svgVertex.vertex;
+            if (vertex.svgHighlight != null) {
+                view.unhighlightVertex(vertex);
+            } else {
+                view.highlightVertex(vertex);
+            }
         }
     }
 }
@@ -195,6 +186,14 @@ let edgeClickHandler = {
             let svgEdge = event.currentTarget;
             let edge = svgEdge.edge;
             model.graph.removeEdge(edge);
+        } else if (drawingMode === "highlight") {
+            const svgEdge = event.currentTarget;
+            const edge = svgEdge.edge;
+            if (edge.svgHighlight != null) {
+                view.unhighlightEdge(edge);
+            } else {
+                view.highlightEdge(edge);
+            }
         }
     }
 }
@@ -386,6 +385,7 @@ export function initExamples() {
     })
 
     document.getElementById("n75").addEventListener("click", loadExampleHandler);
+    document.getElementById("n58").addEventListener("click", loadExampleHandler);
     document.getElementById("n34").addEventListener("click", loadExampleHandler);
 }
 
@@ -398,6 +398,9 @@ export let loadExampleHandler = {
                 break;
             case "n34":
                 filename = "./examples/graph-n34.json";
+                break;
+            case "n58":
+                filename = "./examples/graph-n58.json";
                 break;
         }
 
@@ -586,7 +589,6 @@ function resetDrawMode() {
     }
 
     drawingMode = "none";
-    document.querySelector("#drawToolbar").classList.add("hidden");
     svg.removeEventListener("click", addModeHandler);
     endDragMode();
 

@@ -128,16 +128,32 @@ export function moveVertexTo(svgVertex, coordinates) {
     vertex.x = coordinates.x;
     vertex.y = coordinates.y;
 
+    let svgHighlight = vertex.svgHighlight;
+    if (svgHighlight != null) {
+        svgHighlight.setAttribute("cx", coordinates.x);
+        svgHighlight.setAttribute("cy", coordinates.y);
+    }
+
+
     let edges = vertex.edges;
     for (let edge of edges) {
         let svgEdge = edge.svgEdge;
+        svgHighlight = edge.svgHighlight;
         if (edge.source === vertex) {
             svgEdge.setAttribute("x1", coordinates.x);
             svgEdge.setAttribute("y1", coordinates.y);
+            if (svgHighlight != null) {
+                svgHighlight.setAttribute("x1", coordinates.x);
+                svgHighlight.setAttribute("y1", coordinates.y);
+            }
         }
         else {
             svgEdge.setAttribute("x2", coordinates.x);
             svgEdge.setAttribute("y2", coordinates.y);
+            if (svgHighlight != null) {
+                svgHighlight.setAttribute("x2", coordinates.x);
+                svgHighlight.setAttribute("y2", coordinates.y);
+            }
         }
     }
 }
@@ -245,7 +261,9 @@ export function highlightVertex(vertex) {
     let hightlightLayer = svg.querySelector("#highlightLayer");
 
     let svgHighlight = createSVGElement("circle");
-    svgHighlight.setAttribute("r", getComputedStyle(document.documentElement).getPropertyValue('--vertexHighlightSize'));
+    let highlightRadius = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--vertexSize')) 
+    + parseInt(getComputedStyle(document.documentElement).getPropertyValue('--highlightDifference'));
+    svgHighlight.setAttribute("r", highlightRadius);
     svgHighlight.setAttribute("cx", vertex.x);
     svgHighlight.setAttribute("cy", vertex.y);
     svgHighlight.classList.add("highlight");
@@ -265,6 +283,34 @@ export function unhighlightVertex(vertex) {
         vertex.svgHighlight = null;
     }
 }
+
+export function highlightEdge(edge) {
+    let hightlightLayer = svg.querySelector("#highlightLayer");
+
+    let svgHighlight = edge.svgEdge.cloneNode(false);
+    svgHighlight.classList.add("highlight");
+    svgHighlight.id = "svg-ehighlight-" + edge.id;
+    let strokWidth = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--edgeWidth')) 
+    + parseInt(getComputedStyle(document.documentElement).getPropertyValue('--highlightDifference'));
+    svgHighlight.setAttribute("style", "stroke-width: " + strokWidth);
+    svgHighlight.removeAttribute("marker-end");
+
+    edge.svgHighlight = svgHighlight;
+    svgHighlight.edge = edge;
+
+    hightlightLayer.append(svgHighlight);
+    return svgHighlight;
+}
+
+export function unhighlightEdge(edge) {
+    let svgHighlight = edge.svgHighlight;
+    if (svgHighlight != null) {
+        svgHighlight.remove();
+        edge.svgHighlight = null;
+    }
+}
+
+
 
 export function hightlightFlipCycle(flipCycle) {
     let flipCyclesLayer = svg.querySelector("#flipCyclesLayer");
