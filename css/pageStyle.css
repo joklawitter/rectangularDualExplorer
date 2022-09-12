@@ -6,11 +6,53 @@ body {
     background-color: #ffffff;
 }
 
-.toolbar, .subtoolbar, .buttonTool {
-    align-items: left; 
-    display: flex; 
-    flex-direction: column; 
-    justify-content: center;
+header {
+    top: 0;
+    margin: 5px 10px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.toolbar,
+.toolset,
+#nameDiv {
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: flex-start;
+    align-items: flex-end;
+}
+
+#nameDiv h2 {
+    margin-bottom: 5px;
+}
+
+.toolset label,
+.toolbarRange {
+    display: inline-block;
+    height: 21px;
+    text-align: center;
+}
+
+.toolset label {
+    width: 21px;
+}
+
+.toolbarRange {
+    justify-content: baseline;
+}
+
+.toolsetDivider {
+    display: inline-block;
+    width: 0px;
+    border: 1px solid rgb(165, 165, 165);
+    height: 33px;
+    margin-bottom: 2px;
+}
+
+.toolset label,
+.toolsetDivider {
+    margin-right: 0.5rem;
 }
 
 .hidden {
@@ -18,21 +60,26 @@ body {
     display: none;
 }
 
-.toolbar input[type="radio"], .subtoolbar input[type="radio"], .checkboxHidden {
+.toolbar input[type="radio"],
+.subtoolbar input[type="radio"],
+.checkboxHidden {
     display: none;
 }
 
-.toolbar input[type="radio"]:checked+label, .subtoolbar input[type="radio"]:checked+label {
-   background-color: #cae6f7;
+.toolbar input[type="radio"]:checked+label,
+.subtoolbar input[type="radio"]:checked+label {
+    background-color: #cae6f7;
 }
 
-.toolbar label, .subtoolbar label, .buttonTool {
+.toolbar label,
+.subtoolbar label,
+.popupForm label,
+.buttonTool {
     cursor: pointer;
     border: 1px solid #DDDDDD;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
-    padding: 0.5em;
-    margin-top: 0.5em;
-    margin-right: 0.5em;
+    padding: 0.5rem;
+    margin-right: 0.5rem;
 }
 
 .subtoolbar label {
@@ -44,9 +91,9 @@ body {
     margin-bottom: 0.5em;
 }
 
-.toolbarRange, .toolbarCheckbox {
+.toolbarRange,
+.toolbarCheckbox {
     display: flex;
-    flex-direction: column; 
     align-items: center;
     justify-content: center;
     border: 1px solid #DDDDDD;
@@ -56,20 +103,16 @@ body {
     margin-right: 0.5em;
 }
 
-.toolbarCheckbox {
-    flex-direction: column; 
-}
-
 .toolbarRange {
-    flex-direction: row; 
+    flex-direction: row;
 }
 
 .toolbarRange input[type="range"] {
     -webkit-appearance: none;
-    width: 100%;
-    height: 15px;
+    width: 60px;
+    height: 12px;
     border-radius: 5px;
-    background: #d3d3d3;
+    background: #bdbdbd;
     outline: none;
     opacity: 0.8;
     -webkit-transition: .2s;
@@ -83,18 +126,19 @@ body {
 .toolbarRange input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%; 
-    background: #4CAF50;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #4d854f;
     cursor: pointer;
 }
-  
+
 .toolbarRange input[type="range"]::-moz-range-thumb {
-    width: 18px;
-    height: 18px;
+    width: 15px;
+    height: 15px;
     border-radius: 50%;
-    background: #4CAF50;
+    background: #4d854f;
+    border-color: black;
     cursor: pointer;
 }
 
@@ -111,19 +155,47 @@ body {
     margin-top: 0.5em;
 }
 
-.toolbarRow  input[type="checkbox"]:checked + label {
+.toolset input[type="checkbox"]:checked+label {
     background-color: #cae6f7;
 }
 
-#cwFlips:checked + label {
+#cwFlips:checked+label {
     background-color: #ff80007e;
 }
 
-#ccwFlips:checked + label {
+#allFlips:checked+label {
+    background-color: #cae6f7;
+}
+
+#allFlipsLabel {
+    width: 8px !important;
+    padding-left: 0.2rem;
+    padding-right: 0.2rem;
+    margin: 0;
+    margin-left: -0.1px;
+    z-index: 0;
+    border-top: 1px solid #DDDDDD;
+    border-bottom: 1px solid #DDDDDD;
+    border-left: none;
+    border-right: none;
+    height: 19px;
+    margin-bottom: 1px;
+}
+
+#cwFlipsLabel {
+    margin-right: 0 !important;
+}
+
+#ccwFlips:checked+label {
     background-color: #29a02d71;
 }
 
 svg {
+    border: 1px solid #DDDDDD;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+}
+
+.boxshadowy {
     border: 1px solid #DDDDDD;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
 }
@@ -143,7 +215,7 @@ svg {
     margin-left: 0px;
     background-color: #f1f1f1;
     overflow: auto;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
     z-index: 3;
 }
 
@@ -155,4 +227,52 @@ svg {
 
 .dropdownContent a:hover {
     background-color: #ddd;
+}
+
+#popupOpenFile,
+#popupSaveFile {
+    display: none;
+}
+
+.popupForm {
+    position: absolute;
+    left: 50%;
+    top: 25%;
+    display: block;
+    z-index: 9;
+
+    height: max-content;
+    background: white;
+    transform: translate(-50%, 0%);
+    padding: 12px;
+    padding-bottom: 24px;
+    opacity: 1;
+
+    justify-content: center;
+    text-align: center;
+}
+
+.popupBackground {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 8;
+
+    width: 100%;
+    height: 100%;
+    background-color: #bdbdbd;
+    opacity: 0.5;
+}
+
+.popupForm h3 {
+    font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+    font-weight: normal;
+}
+
+.popupForm input {
+    margin: 0.5rem 0 1.5rem 0;
+}
+
+.popupForm label {
+    margin-bottom: 3rem;
 }

@@ -28,7 +28,12 @@
 
 .highlight {
     stroke: orange;
-    fill: orange;
+    fill: rgba(255, 166, 0, 0.712);
+}
+
+.highlightError {
+    stroke: rgb(252, 135, 81);
+    fill: rgb(253, 173, 135);
 }
 
 .blue {

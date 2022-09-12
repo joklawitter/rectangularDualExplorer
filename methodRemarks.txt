@@ -1,0 +1,63 @@
+> IO
+Graph erstellen
+- äußerer 4-Cycle automatisch gesetzt, Kanten mit Knick geroutet
+- Knotenreihenfolge: W, S, E, N
+- äußere Kanten sind zwei Halbkanten, sprich tatsächlich als horizontal und vertikal angesehen
+- Kantenreihenfolge: WN, EN, SE, SW
+- Knoten mit aufsteigender id, Knoten löschen tausche letzten Knoten mit gelöschtem
+- Kanten merken sich Knoten und nicht id
+- allgemein ist id nur eine Pseudo-id fürs debuggen und nicht konsistent verwendet
+
+Graph speichern
+- speicher nur Koordinaten von Knoten, nicht Verlauf von Kanten
+- für Kanten speichert nur id von Knoten
+
+Graph einlesen/Graph Format (parseGraph)
+- liest mit Tool erstellte Graphen ein
+- nimmt daher implizit an, dass erste 4 Knoten die 4 äußeren Knoten sind in richtiger Reihenfolge
+
+
+> Util
+Kanten sortieren
+mit orderEdgesCircularly
+- Kanten werden sortiert in zirkulärer Reihenfolge um Knoten
+- clockwise!
+- erstmal ohne explizite erste Kante
+dann mit orderEdgesInOut
+- teilt zirkulär sortierte Kanten so auf, dass erst eingehende Kanten kommen
+
+
+> Tests:
+Triangulated
+- assumes edges are sorted circularly around each vertex
+- checks if two subsequent neighbors are neighbors, otherwise not triangulated
+
+Separating Triangle
+- assumes edges are sorted circularly around each vertex
+- checks if between any two non-subsquent neighbors are adjacent
+- possible bug? edge indices are not take modulo, so maybe there could be separating triangle between, say, second to last and first edge
+
+
+> Algos:
+Canonical Order berechnen
+- standard (extended) canonical order algo
+- assumes standard order of first four vertices
+- assumes edges are sorted around each vertex (not in/out since still unknown)
+- after calling computeCanonicalOrder, should also compute engrainCanonicalOrder s.t. edges get colored, directed and sorted
+- index in canonical order is stored in vertex, but this is not the same as the id
+
+REL berechnen
+- assumes canonical order computed and edges directed accordingly
+- assumes thus that edges are sorted in/out circularly
+- assumes red WE/hori, blue SN/verti
+- assumes standard of vertices, assumes from canonical order that vertex N = v_n and vertex E = v_{n-1}
+
+Dualgraph berechnen
+- computes dual of a colored subgraph, not of whole graph
+- this uses a completely new graph/clone of half of the graph
+- assumes again cirular in/out edge orders
+
+RecDual berechnen
+- uses dual graphs to compute coordinates
+- natural previous steps should have been done (CO, REL)
+

@@ -2,7 +2,7 @@
 import * as view from "./view.js";
 import * as model from "./model.js";
 
-export function computeREL(graph, canonicalOrder) {
+export async function computeREL(graph, canonicalOrder) {
     // canonical order should have been computed
     // and engrained in graph
     // i.e. vertices have .orderIndex, edges oriented and sorted in->out
@@ -145,7 +145,7 @@ export function computeCanonicalOrder(graph) {
         // if vk has only two neighours on cycle_k-1 
         // (and was not on outer four cycle)
         // then those two had a chord
-        if ((outerIntvalvk.length === 2) && (k <= n - 3)) {
+        if ((outerIntvalvk.length === 2) && (k <= n - 2)) {
             outerIntvalvk[0].numChords--;
             if ((outerIntvalvk[0].numChords == 0) && !outerIntvalvk[0].marked) {
                 candidates.push(outerIntvalvk[0]);
@@ -262,41 +262,30 @@ export function findFlipCycles(graph) {
                                         if (u2 === u) {
                                             let orientation = null;
 
-
                                             // > find orientation
                                             // vi = index of ve
                                             // vj = index of ue for v
                                             let vj = v.edges.indexOf(ue);
                                             if ((vj === 0) && (vi !== (v.edges.length - 1))) {
-                                                // there are red edges inwards at v
-                                                orientation = model.orientations.CCW;
-                                            } else if ((vj !== 0) && (vi === (v.edges.length - 1))) {
-                                                // there are blue edges inwards at v
+                                                // there are red (otugoing) edges at v inside cycle
                                                 orientation = model.orientations.CW;
+                                            } else if ((vj !== 0) && (vi === (v.edges.length - 1))) {
+                                                // there are blue (incoming) edges at v inside cycle
+                                                orientation = model.orientations.CCW;
                                             } else {
-                                                // v has no edges pointing inwards -> check w
+                                                // v has no incident edges inside cycle -> w must have one
                                                 // wi = index of we
                                                 if (w.edges[wi + 1].color === model.colors.BLUE) {
-                                                    orientation = model.orientations.CCW;
-                                                } else {
                                                     orientation = model.orientations.CW;
+                                                } else {
+                                                    orientation = model.orientations.CCW;
                                                 }
                                             }
 
-
                                             // save
-                                            flipCycles.push({
-                                                'id': flipCycles.length,
-                                                'u': u,
-                                                'ue': ue,
-                                                'v': v,
-                                                've': ve,
-                                                'w': w,
-                                                'we': we,
-                                                'x': x,
-                                                'xe': xe,
-                                                'orientation': orientation
-                                            })
+                                            flipCycles.push(
+                                                new model.FlipCycle(flipCycles.length,
+                                                    u, ue, v, ve, w, we, x, xe, orientation));
                                         }
                                     }
                                 }
@@ -311,37 +300,35 @@ export function findFlipCycles(graph) {
         }
     }
 
-
     return flipCycles;
 }
 
-export async function computeRectangularDual(graph) {
-    console.log("i.a) compute blue subgraph");
+export async function computeRectangularDual(graph, log = false) {
+    // console.log("i.a) compute blue subgraph");
     const blueSubgraph = await computeColorSubgraph(graph, model.colors.BLUE);
-    console.log("i.b) and its blue dual");
+    // console.log("i.b) and its blue dual");
     const blueDual = await computeDual(blueSubgraph);
-    console.log("i.c) and an order on that one");
-    
-    
-    console.log("ii.a) compute red subgraph");
+    // console.log("i.c) and an order on that one");
+
+    // console.log("ii.a) compute red subgraph");
     const redSubgraph = await computeColorSubgraph(graph, model.colors.RED);
-    console.log("ii.b) and its red dual");
+    // console.log("ii.b) and its red dual");
     const redDual = await computeDual(redSubgraph);
-    console.log("ii.c) and an order on that one");
+    // console.log("ii.c) and an order on that one");
+
     const blueMax = await computeTopologicalOrder(blueDual);
     const redMax = await computeTopologicalOrder(redDual);
 
-    console.log("blue max: " + blueMax);
-    console.log("red max: " + redMax);
+    // console.log("blue max: " + blueMax);
+    // console.log("red max: " + redMax);
 
     graph.xmax = blueMax + 1;
     graph.ymax = redMax + 1;
 
-    console.log("iii) compute rectangle for each vertex");
+    // console.log("iii) compute rectangle for each vertex");
     for (let i = 0; i < graph.vertices.length; i++) {
         let v = graph.vertices[i];
         v.rectangle = await computeRectangle(i, v);
-        view.drawRectangle(v, blueMax + 1, redMax + 1);
     }
 
     async function computeRectangle(i, v) {
@@ -354,21 +341,21 @@ export async function computeRectangularDual(graph) {
                 rect.y2 = redMax;
                 rect.name = "rectWest";
                 break;
-                case 1: // S
+            case 1: // S
                 rect.x1 = 0;
                 rect.x2 = blueMax;
                 rect.y1 = redMax;
                 rect.y2 = redMax + 1;
                 rect.name = "rectSouth";
                 break;
-                case 2: // E;
+            case 2: // E;
                 rect.x1 = blueMax;
                 rect.x2 = blueMax + 1;
                 rect.y1 = 1;
                 rect.y2 = redMax + 1;
                 rect.name = "rectEast";
                 break;
-                case 3: // N
+            case 3: // N
                 rect.x1 = 1;
                 rect.x2 = blueMax + 1;
                 rect.y1 = 0;
@@ -394,16 +381,29 @@ export async function computeColorSubgraph(graph, color) {
 
     for (let i = 0; i < graph.vertices.length; i++) {
         const v = graph.vertices[i];
-        const copy = new model.Vertex(v.id, v.x, v.y)
+        const copy = new model.Vertex(v.id + "-" + color, v.x, v.y)
         copy.original = v;
+        copy.svgVertex = v.svgVertex;
+        if (color === model.colors.BLUE) {
+            v.blueCopy = copy;
+        } else {
+            v.redCopy = copy;
+        }
         vertices.push(copy);
 
+        if (v.svgVertex !== null) {
+            copy.svgVertex = v.svgVertex;
+        }
+        if (v.svgRect !== null) {
+            copy.svgRect = v.svgRect;
+        }
     }
 
     for (const e of graph.edges) {
         if (e.color === color) {
             const copy = new model.Edge(e.id, vertices[e.source.id], vertices[e.target.id]);
             copy.original = e;
+            copy.svgEdge = e.svgEdge;
             edges.push(copy);
         }
     }
@@ -411,10 +411,11 @@ export async function computeColorSubgraph(graph, color) {
     // add phantom edge between source and sink
     let s, t;
     for (const v of vertices) {
+        // await v.orderEdgesInOut();
         await v.setNumberIncomingEdges();
         if ((v.numIncomingEdges === 0) && (v.edges.length > 0)) {
             s = v;
-        } else if ((v.numIncomingEdges == v.edges.length) && (v.edges.length > 0)) {
+        } else if ((v.numIncomingEdges === v.edges.length) && (v.edges.length > 0)) {
             t = v;
         }
     }
@@ -425,6 +426,7 @@ export async function computeColorSubgraph(graph, color) {
     phantomPolylineEdge(e, s, t, color);
 
     let subgraph = new model.Graph(graph.id + color, vertices, edges, name);
+    subgraph.color = color;
     return await orderGraph(subgraph);
 
     async function orderGraph(graph) {
@@ -437,27 +439,27 @@ export async function computeColorSubgraph(graph, color) {
 
     async function phantomPolylineEdge(edge, s, t, color) {
         let edgeLayer = view.svg.querySelector("#edgeLayer");
-    
+
         let svgEdge = view.createSVGElement("polyline");
         let points = t.x + "," + t.y + " ";
         if (color == model.colors.BLUE) {
             points += t.x + "," + (parseInt(t.y) - 10) + " "
-            + s.x + "," + (parseInt(s.y) + 10) + " ";
+                + s.x + "," + (parseInt(s.y) + 10) + " ";
         } else {
             points += (parseInt(t.x) + 10) + "," + t.y + " "
-            + (parseInt(s.x) - 10) + "," + s.y + " ";
+                + (parseInt(s.x) - 10) + "," + s.y + " ";
         }
         points += s.x + "," + s.y;
         svgEdge.setAttribute("points", points);
         svgEdge.setAttribute("fill", "none");
         svgEdge.setAttribute("stroke", "none");
         svgEdge.id = "svg-" + edge.id;
-    
+
         edgeLayer.append(svgEdge);
-    
+
         svgEdge.edge = edge;
         edge.svgEdge = svgEdge;
-    
+
         return svgEdge;
     }
 }
@@ -479,6 +481,16 @@ export async function computeDual(graph) {
     const t = new model.Vertex("f" + faces.length);
     faces.push(t);
     await computeFaces();
+
+    // 1.5 special case of thin graph
+    // if color subgraph consists of only a circle
+    // (when frame only contains a path),
+    // then we have to set everything by hand
+    if (graph.vertices[0].edges.length <= 2) {
+        console.log(" special case of thin colored subgraph");
+        const dualEdge = new model.Edge("dual" + 0, s, t);
+        dualEdges.push(dualEdge);
+    }
 
     // 2. dual edges
     // every edge gives dual edge from leftFace to rightFace
@@ -587,14 +599,14 @@ export async function computeTopologicalOrder(graph) {
 
     for (const v of graph.vertices) {
         if (v.orderIndex < 0) {
-            await computeOrderRecursion(v);
+            await computeOrderRecursion(v, graph);
             highestIndex = (highestIndex >= v.orderIndex) ? highestIndex : v.orderIndex;
         }
     }
 
     return highestIndex;
 
-    async function computeOrderRecursion(v) {
+    async function computeOrderRecursion(v, graph) {
         let max = 0;
         for (let i = 0; i < v.edges.length; i++) {
             const e = v.edges[i];

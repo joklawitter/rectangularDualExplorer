@@ -3,9 +3,14 @@
 import * as view from "./view.js";
 
 export let graph = null;
+export let graphRD = null;
 
 export function initGraph(id = 0, name = "graph") {
     graph = new Graph(id, null, null, name);
+}
+
+export function setGraphRD(graph) {
+    graphRD = graph;
 }
 
 export class Graph {
@@ -27,6 +32,9 @@ export class Graph {
         for (let vertex of this.vertices) {
             vertex.graph = this;
         }
+        for (let edge of this.edges) {
+            edge.graph = this;
+        }
     }
 
     static parseGraph(JSONgraph) {
@@ -34,6 +42,7 @@ export class Graph {
         let edges = [];
 
         let id = JSONgraph.id;
+        let hasREL = JSONgraph.hasREL;
 
         JSONgraph.vertices.forEach((vertex) => {
             let newVertex = new Vertex(vertex.id, vertex.x, vertex.y);
@@ -44,12 +53,14 @@ export class Graph {
             let source = vertices[edge.source];
             let target = vertices[edge.target];
             let newEdge = new Edge(edge.id, source, target);
+            newEdge.color = edge.color;
             edges.push(newEdge);
         });
 
         let name = (JSONgraph.hasOwnProperty("name")) ? JSONgraph.name : "";
 
         graph = new Graph(JSONgraph.id, vertices, edges, name);
+        graph.hasREL = hasREL;
     }
 
     toJSON() {
@@ -57,6 +68,7 @@ export class Graph {
         JSONgraph.id = this.id;
         JSONgraph.name = this.name;
         JSONgraph.vertices = [];
+        JSONgraph.hasREL = this.hasREL;
         for (let vertex of this.vertices) {
             JSONgraph.vertices.push({
                 "id": vertex.id,
@@ -70,7 +82,8 @@ export class Graph {
             JSONgraph.edges.push({
                 "id": edge.id,
                 "source": edge.source.id,
-                "target": edge.target.id
+                "target": edge.target.id,
+                "color": edge.color
             })
         }
 
@@ -155,9 +168,9 @@ export class Graph {
                         // which is mostly excluded by choice of j and k
                         // unless we looped around in first round
                         if (!((j === 0) && (k === (vertex.edges.length - 1)))) {
-                            view.highlightVertex(vertex);
-                            view.highlightVertex(vertexA);
-                            view.highlightVertex(vertexB);
+                            view.highlightVertex(vertex, "highlightError");
+                            view.highlightVertex(vertexA, "highlightError");
+                            view.highlightVertex(vertexB, "highlightError");
                             return true;
                         }
                     }
@@ -191,7 +204,8 @@ export class Graph {
         return true;
     }
 
-    flipFlipCycle(flipCycle) {
+    async flipFlipCycle(flipCycle) {
+        console.log("> flip four-cycle", flipCycle);
         let u = flipCycle.u;
         let v = flipCycle.v;
         let w = flipCycle.w;
@@ -245,7 +259,7 @@ export class Graph {
         }
 
         for (const edge of edgesToFlip) {
-            if (flipCycle.orientation === orientations.CW) {
+            if (flipCycle.orientation === orientations.CCW) {
                 if (edge.color === colors.BLUE) {
                     edge.reverse();
                     edge.color = colors.RED;
@@ -283,6 +297,70 @@ export class Graph {
     }
 }
 
+export async function copyGraph(graphToCopy, copyName = null) {
+    let vertexCopies = [];
+    let edgeCopies = [];
+
+    // copy vertices
+    for (const vertex of graphToCopy.vertices) {
+        let vertexCopy = await copyVertex(vertex, copyName);
+        vertexCopies.push(vertexCopy);
+    }
+
+    // copy edges
+    for (const edge of graphToCopy.edges) {
+        let sourceCopy, targetCopy;
+        if (copyName !== null) {
+            sourceCopy = edge.source[copyName];
+            targetCopy = edge.target[copyName];
+        } else {
+            sourceCopy = edge.source.copy;
+            targetCopy = edge.target.copy;
+        }
+        let edgeCopy = new Edge(edge.id, sourceCopy, targetCopy);
+        edgeCopy.isHighlighted = edge.isHighlighted;
+        edgeCopy.color = edge.color;
+        edgeCopy.original = edge;
+        if (copyName !== null) {
+            edge[copyName] = edgeCopy;
+            edgeCopy.svgEdge = edge.svgEdge;
+        } else {
+            edge.copy = edgeCopy;
+        }
+
+        edgeCopies.push(edgeCopy);
+    }
+
+    // set edges at vertices
+    for (const vertex of graphToCopy.vertices) {
+        let edgesCopiesAtVertex = [];
+        for (const edge of vertex.edges) {
+            if (copyName !== null) {
+                edgesCopiesAtVertex.push(edge[copyName]);
+            } else {
+                edgesCopiesAtVertex.push(edge.copy);
+            }
+        }
+        if (copyName !== null) {
+            vertex[copyName].edges = edgesCopiesAtVertex;
+        } else {
+            vertex.copy.edges = edgesCopiesAtVertex;
+        }
+    }
+
+    // create and return copy
+    let graphCopy = new Graph(graphToCopy.id + "'", vertexCopies, edgeCopies, graphToCopy.name + "-copy");
+    graphCopy.hasREL = graphToCopy.hasREL;
+    graphCopy.original = graphToCopy;
+    if (copyName !== null) {
+        graphToCopy[copyName] = graphCopy;
+    } else {
+        graphToCopy.copy = graphCopy;
+    }
+
+    return graphCopy;
+}
+
 export class Vertex {
     constructor(id, x, y, type = "disc") {
         this.id = id;
@@ -295,9 +373,13 @@ export class Vertex {
 
         this.svgVertex = null;
         this.svgLabel = null;
+        this.svgRect = null;
 
         this.svgHighlight = null;
         this.isHighlighted = false;
+
+        this.blueCopy = null;
+        this.redCopy = null;
     }
 
     async removeEdge(edge) {
@@ -308,6 +390,7 @@ export class Vertex {
     }
 
     async orderEdgesCircularly() {
+        // edges get order CW
         if (this.edges.length == 0) {
             this.numIncomingEdges = 0;
             return this;
@@ -390,6 +473,15 @@ export class Vertex {
         return false;
     }
 
+    getEdgeToNeighbor(other) {
+        for (let edge of this.edges) {
+            if (edge.getOtherEndpoint(this) === other) {
+                return edge;
+            }
+        }
+        return null;
+    }
+
     isIncomingEdge(edge) {
         return (this === edge.target);
     }
@@ -409,8 +501,30 @@ export class Vertex {
     }
 }
 
+export async function copyVertex(vertexToCopy, copyName = null) {
+    let vertexCopy = new Vertex(vertexToCopy.id, vertexToCopy.x, vertexToCopy.y, vertexToCopy.type);
+    vertexCopy.numIncomingEdges = vertexToCopy.numIncomingEdges;
+    vertexCopy.isOnOuterFace = vertexToCopy.isOnOuterFace;
+    vertexCopy.isHighlighted = vertexToCopy.isHighlighted;
+    vertexCopy.original = vertexToCopy;
+    if (copyName !== null) {
+        vertexToCopy[copyName] = vertexCopy;
+    } else {
+        vertexToCopy.copy = vertexCopy;
+    }
+
+    if (vertexToCopy.svgVertex !== null) {
+        vertexCopy.svgVertex = vertexToCopy.svgVertex;
+    }
+    if (vertexToCopy.svgRect !== null) {
+        vertexCopy.svgRect = vertexToCopy.svgRect;
+    }
+
+    return vertexCopy;
+}
+
 export class Edge {
-    constructor(id, source, target) {
+    constructor(id, source, target, push = true) {
         this.id = id;
         this.source = source;
         this.target = target;
@@ -421,8 +535,10 @@ export class Edge {
         this.svgHighlight = null;
         this.isHighlighted = false;
 
-        this.source.edges.push(this);
-        this.target.edges.push(this);
+        if (push) {
+            this.source.edges.push(this);
+            this.target.edges.push(this);
+        }
     }
 
     computeSlope() {
@@ -442,7 +558,7 @@ export class Edge {
                 vx = points[i].x;
                 vy = points[i].y;
             }
-        } else {
+        } else if (this.original.svgEdge !== null) {
             if (this.original.svgEdge.tagName === "line") {
                 vx = v.x;
                 vy = v.y;
@@ -452,6 +568,9 @@ export class Edge {
                 vx = points[i].x;
                 vy = points[i].y;
             }
+        } else {
+            vx = v.x;
+            vy = v.y;
         }
         const vRelativeX = vx - u.x;
         const vRelativeY = vy - u.y;
@@ -461,6 +580,17 @@ export class Edge {
 
     getOtherEndpoint(vertex) {
         return (this.source === vertex) ? this.target : this.source;
+    }
+
+    replaceEndpoint(oldEndpoint, newEndpoint) {
+        if (this.source === oldEndpoint) {
+            this.source = newEndpoint
+        } else if (this.target === oldEndpoint) {
+            this.target = newEndpoint;
+        } else {
+            console.error("request to replace old endpoint of edge, that is not actually an endpoint of the edge",
+                "old endpoint " + oldEndpoint, "new endpoint " + newEndpoint);
+        }
     }
 
     reverse() {
@@ -475,6 +605,82 @@ export class Edge {
             this.svgEdge.setAttribute("y2", this.target.y);
         }
     }
+}
+
+export function replaceEndpoint(edge, oldEndpoint, newEndpoint) {
+    if (edge.source === oldEndpoint) {
+        edge.source = newEndpoint
+    } else if (edge.target === oldEndpoint) {
+        edge.target = newEndpoint;
+    } else {
+        console.error("request to replace old endpoint of edge, that is not actually an endpoint of the edge",
+            "old endpoint " + oldEndpoint, "new endpoint " + newEndpoint);
+    }
+}
+
+export class FlipCycle {
+    constructor(id, u, uEdge, v, vEdge, w, wEdge, x, xEdge, orientation) {
+        this.id = id;
+        this.u = u;
+        this.ue = uEdge;
+        this.v = v;
+        this.ve = vEdge;
+        this.w = w;
+        this.we = wEdge;
+        this.x = x;
+        this.xe = xEdge;
+        this.orientation = orientation;
+    }
+}
+
+export async function getInteriorVerticesOfFourCycle(fourCycle) {
+    let interiorVertices = [];
+    let queue = [];
+    let endVertex;
+    if (fourCycle.orientation === orientations.CW) {
+        // cw rotation: v is now on left of four cycle, so can take all outgoing red until x
+        endVertex = fourCycle.x;
+        let pastW = false
+        for (const edge of fourCycle.v.edges) {
+            let nextVertex = edge.target;
+            if (nextVertex === fourCycle.w) {
+                pastW = true;
+                continue;
+            }
+            if (pastW) {
+                queue.push(edge.target);
+                interiorVertices.push(edge.target);
+            }
+        }
+
+    } else {
+        // ccw rotation: u and w have these roles
+        endVertex = fourCycle.w;
+        for (const edge of fourCycle.u.edges) {
+            let nextVertex = edge.target;
+            if (nextVertex === fourCycle.x) {
+                break;
+            }
+            if ((edge.color === colors.RED) && (edge.source === fourCycle.u) && (nextVertex !== endVertex)) {
+                queue.push(edge.target);
+                interiorVertices.push(edge.target);
+            }
+        }
+    }
+    while (queue.length > 0) {
+        let curVertex = queue.pop();
+        for (const edge of curVertex.edges) {
+            let nextVertex = edge.target;
+            if ((edge.color === colors.RED) && (edge.source === curVertex) && (nextVertex !== endVertex)) {
+                if (!interiorVertices.includes(nextVertex)) {
+                    queue.push(edge.target);
+                    interiorVertices.push(edge.target);
+                }
+            }
+        }
+    }
+
+    return interiorVertices;
 }
 
 export const colors = {

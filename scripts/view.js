@@ -7,7 +7,11 @@ export let svg = document.querySelector("#theSVG");
 export const WIDTH = 700;
 export const HEIGHT = 360;
 export const PADDING = 10;
-const OFFSET = 2;
+export const CLICK_TOLERANCE = 15;
+export const OFFSET = 2;
+
+export let X_STEP = 17;
+export let Y_STEP = 17;
 
 export function initSVG() {
     let layer = createSVGElement("g");
@@ -43,6 +47,7 @@ export function initSVG() {
 export function initSizes(vertexSize, edgeSize) {
     document.documentElement.style.setProperty('--vertexSize', vertexSize);
     document.documentElement.style.setProperty('--edgeWidth', edgeSize);
+    setArrowHeadAttributes();
     changeVertexHighlightSize(vertexSize);
 }
 
@@ -50,6 +55,21 @@ function changeVertexHighlightSize(vertexSize) {
     let highlightSize = parseInt(vertexSize) + parseInt(getComputedStyle(document.documentElement).getPropertyValue('--highlightDifference'));
     document.documentElement.style.setProperty('--vertexHighlightSize', highlightSize);
     return highlightSize;
+}
+
+function setArrowHeadAttributes() {
+    let vertexSize = Number(document.documentElement.style.getPropertyValue('--vertexSize'));
+    let edgeWidth = Number(document.documentElement.style.getPropertyValue('--edgeWidth'));
+
+
+    let refX = (vertexSize / edgeWidth + 7);
+    document.getElementById("arrowRed").setAttribute("refX", refX);
+    document.getElementById("arrowBlue").setAttribute("refX", refX);
+
+
+    let markerWidth = 9 - (edgeWidth - 1) * 0.6;
+    document.getElementById("arrowRed").setAttribute("markerWidth", markerWidth);
+    document.getElementById("arrowBlue").setAttribute("markerWidth", markerWidth);
 }
 
 export async function resetSVG() {
@@ -61,18 +81,18 @@ export async function resetSVG() {
 }
 
 export async function resetLayer(id) {
-    let layer = svg.querySelector("#" + id);
+    let layer = svg.getElementById(id);
     while (layer.firstChild) {
         layer.removeChild(layer.lastChild);
     }
 }
 
 export function showLayer(id) {
-    svg.querySelector("#" + id).classList.remove("hidden");
+    svg.getElementById(id).classList.remove("hidden");
 }
 
 export function hideLayer(id) {
-    svg.querySelector("#" + id).classList.add("hidden");
+    svg.getElementById(id).classList.add("hidden");
 }
 
 export async function drawGraph(graph) {
@@ -106,7 +126,7 @@ export async function drawGraph(graph) {
 }
 
 export async function drawVertex(vertex, layer = "vertexLayer") {
-    let vertexLayer = svg.querySelector("#" + layer);
+    let vertexLayer = svg.getElementById(layer);
 
     let svgVertex = createSVGElement("circle");
     svgVertex.setAttribute("r", getComputedStyle(document.documentElement).getPropertyValue('--vertexSize'));
@@ -175,11 +195,18 @@ export function drawEdge(edge) {
     edge.svgEdge = svgEdge;
     svgEdge.edge = edge;
 
+    if (edge.color !== null) {
+        colorEdge(edge);
+    }
+
     edgeLayer.append(svgEdge);
     return svgEdge;
 }
 
 export function colorEdge(edge) {
+    if (edge.svgEdge === null) {
+        return;
+    }
     if (edge.color === model.colors.RED) {
         edge.svgEdge.setAttribute("stroke", getComputedStyle(document.documentElement).getPropertyValue('--redStroke'));
         edge.svgEdge.setAttribute("marker-end", "url(#arrowRed)");
@@ -187,7 +214,20 @@ export function colorEdge(edge) {
         edge.svgEdge.setAttribute("stroke", getComputedStyle(document.documentElement).getPropertyValue('--blueStroke'));
         edge.svgEdge.setAttribute("marker-end", "url(#arrowBlue)");
     } else if (edge.color === model.colors.GREN) {
-        edge.svgEdge.setAttribute("stroke", getComputedStyle(document.documentElement).getPropertyValue('--greenStroke'));
+        // edge.svgEdge.setAttribute("stroke", getComputedStyle(document.documentElement).getPropertyValue('--greenStroke'));
+    }
+}
+
+export function hideEdgeColor(edge) {
+    edge.svgEdge.setAttribute("stroke", "black");
+    edge.svgEdge.removeAttribute("marker-end");
+}
+
+export function restoreEdgeColor(edge) {
+    if (edge.color === model.colors.RED) {
+        edge.svgEdge.setAttribute("stroke", getComputedStyle(document.documentElement).getPropertyValue('--redStroke'));
+    } else if (edge.color === model.colors.BLUE) {
+        edge.svgEdge.setAttribute("stroke", getComputedStyle(document.documentElement).getPropertyValue('--blueStroke'));
     }
 }
 
@@ -238,7 +278,9 @@ export function drawPolylineFromToVia(startVertex, targetVertex, midpoint, edge)
 
 export function changeVertexSize(vertexSize) {
     document.documentElement.style.setProperty('--vertexSize', vertexSize);
-    let highlightSize = changeVertexHighlightSize(vertexSize)
+
+    setArrowHeadAttributes();
+    let highlightSize = changeVertexHighlightSize(vertexSize);
 
     for (let vertex of model.graph.vertices) {
         vertex.svgVertex.setAttribute("r", vertexSize);
@@ -249,24 +291,30 @@ export function changeVertexSize(vertexSize) {
 }
 
 export function changeEdgeWidth(edgeWidth) {
+    edgeWidth = 1 + (edgeWidth - 1) * 0.5;
     document.documentElement.style.setProperty('--edgeWidth', edgeWidth);
 
+    setArrowHeadAttributes()
+
     for (let edge of model.graph.edges) {
-        edge.svgEdge.setAttribute("style", "stroke-width: "
-            + getComputedStyle(document.documentElement).getPropertyValue('--edgeWidth'));
+        edge.svgEdge.setAttribute("style", "stroke-width: " + edgeWidth);
     }
 }
 
-export function highlightVertex(vertex) {
+export function highlightVertex(vertex, colorClass = null) {
     let hightlightLayer = svg.querySelector("#highlightLayer");
 
     let svgHighlight = createSVGElement("circle");
-    let highlightRadius = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--vertexSize')) 
-    + parseInt(getComputedStyle(document.documentElement).getPropertyValue('--highlightDifference'));
+    let highlightRadius = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--vertexSize'))
+        + parseInt(getComputedStyle(document.documentElement).getPropertyValue('--highlightDifference'));
     svgHighlight.setAttribute("r", highlightRadius);
     svgHighlight.setAttribute("cx", vertex.x);
     svgHighlight.setAttribute("cy", vertex.y);
-    svgHighlight.classList.add("highlight");
+    if (colorClass === null) {
+        svgHighlight.classList.add("highlight");
+    } else {
+        svgHighlight.classList.add(colorClass);
+    }
     svgHighlight.id = "svg-highlight-" + vertex.id;
 
     if (vertex.svgRect != null) {
@@ -285,7 +333,9 @@ export function unhighlightVertex(vertex) {
     if (svgHighlight != null) {
         svgHighlight.remove();
         vertex.svgHighlight = null;
-        vertex.svgRect.setAttribute("fill", "none");
+        if (vertex.svgRect != null) {
+            vertex.svgRect.setAttribute("fill", "none");
+        }
     }
 }
 
@@ -295,8 +345,8 @@ export function highlightEdge(edge) {
     let svgHighlight = edge.svgEdge.cloneNode(false);
     svgHighlight.classList.add("highlight");
     svgHighlight.id = "svg-ehighlight-" + edge.id;
-    let strokWidth = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--edgeWidth')) 
-    + parseInt(getComputedStyle(document.documentElement).getPropertyValue('--highlightDifference'));
+    let strokWidth = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--edgeWidth'))
+        + parseInt(getComputedStyle(document.documentElement).getPropertyValue('--highlightDifference'));
     svgHighlight.setAttribute("style", "stroke-width: " + strokWidth);
     svgHighlight.removeAttribute("marker-end");
 
@@ -340,17 +390,27 @@ export function hightlightFlipCycle(flipCycle) {
     return svgFlipCycle;
 }
 
+export async function drawRD(graph) {
+    for (const vertex of graph.vertices) {
+        drawRectangle(vertex, graph.xmax + 1, graph.ymax + 1);
+    }
+}
+
 export function drawRectangle(vertex, xmax, ymax) {
-    let xStep = (WIDTH - 2 * OFFSET) / xmax;
-    let yStep = (HEIGHT - 2 * OFFSET) / ymax;
+    // let X_STEP = (WIDTH - 2 * OFFSET) / xmax;
+    // let Y_STEP = (HEIGHT - 2 * OFFSET) / ymax;
+    // X_STEP = Math.min(X_STEP, Y_STEP);
+    // Y_STEP = Math.min(X_STEP, Y_STEP);
+
 
     let rectangularDualLayer = svg.querySelector("#rectangularDualLayer");
     let svgRect = createSVGElement("rect");
-    svgRect.setAttribute("x", OFFSET + vertex.rectangle.x1 * xStep);
-    svgRect.setAttribute("y", OFFSET + vertex.rectangle.y1 * yStep);
-    svgRect.setAttribute("width", (vertex.rectangle.x2 * xStep - vertex.rectangle.x1 * xStep));
-    svgRect.setAttribute("height", (vertex.rectangle.y2 * yStep - vertex.rectangle.y1 * yStep));
+    svgRect.setAttribute("x", OFFSET + vertex.rectangle.x1 * X_STEP);
+    svgRect.setAttribute("y", OFFSET + vertex.rectangle.y1 * Y_STEP);
+    svgRect.setAttribute("width", (vertex.rectangle.x2 * X_STEP - vertex.rectangle.x1 * X_STEP));
+    svgRect.setAttribute("height", (vertex.rectangle.y2 * Y_STEP - vertex.rectangle.y1 * Y_STEP));
     svgRect.setAttribute("stroke", "darkgray");
+    svgRect.setAttribute("id", "svgRect" + vertex.id);
     if (vertex.svgHighlight != null) {
         svgRect.setAttribute("fill", getComputedStyle(document.documentElement).getPropertyValue('--highlightFill'));
     } else {
@@ -368,25 +428,33 @@ export async function drawRDGraph(graph) {
     let yStep = (HEIGHT - 2 * OFFSET) / graph.ymax;
 
     // copy vertices
-    let copies = []
+    let vertexCopies = [];
     for (let i = 0; i < graph.vertices.length; i++) {
         const v = graph.vertices[i];
         const x = OFFSET + (v.rectangle.x1 + v.rectangle.x2) / 2 * xStep;
         const y = OFFSET + (v.rectangle.y1 + v.rectangle.y2) / 2 * yStep;
         let copy = new model.Vertex("rd" + i, x, y);
         copy.original = v;
+
         let svgVertex = drawVertex(copy, "rectangularDualGraphVLayer");
         svgVertex.vertex = copy;
         svgVertex.original = v;
-        copies[i] = copy;
+        vertexCopies[i] = copy;
     }
 
     // draw edges
+    let edgeCopies = [];
     for (const edge of graph.edges) {
         const s = edge.source;
-        const sCopy = copies[edge.source.id];
+        const sCopy = vertexCopies[edge.source.id];
         const t = edge.target;
-        const tCopy = copies[edge.target.id];
+        const tCopy = vertexCopies[edge.target.id];
+
+        let edgeCopy = new model.Edge(edge.id, sCopy, tCopy)
+        edgeCopy.color = edge.color;
+        edgeCopy.original = edge;
+        edgeCopies.push(edgeCopy);
+
         let midpoint = {
             x: 0,
             y: 0
@@ -408,7 +476,10 @@ export async function drawRDGraph(graph) {
         }
 
         let line = drawRDEdge(sCopy, tCopy, midpoint, edge.color);
+        edgeCopy.svgEdge = line;
     }
+
+    model.setGraphRD(new model.Graph(graph.id + "-RD", vertexCopies, edgeCopies, graph.name + "-RD"));
 
     //draw vertices
     for (const v of graph.vertices) {

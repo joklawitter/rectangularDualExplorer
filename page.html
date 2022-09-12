@@ -7,15 +7,13 @@
     <link rel="icon" href="favicon.ico">
     <title>Rectangular dual and REL visualiser</title>
 
-
     <link rel="stylesheet" href="css/graphStyle.css">
     <link rel="stylesheet" href="css/pageStyle.css">
-
 </head>
 
 <body>
     <!-- markers -->
-    <svg width="0" height="0">
+    <svg width="0" height="0" style="opacity: 0; margin: 0; position: absolute;">
         <defs>
             <marker id="arrowRed" orient="auto" markerUnits="strokeWidth" viewBox="0 0 9 9" markerWidth="9"
                 markerHeight="9" refX="10" refY="3">
@@ -23,7 +21,7 @@
             </marker>
             <marker id="arrowBlue" orient="auto" markerUnits="strokeWidth" viewBox="0 0 9 9" markerWidth="9"
                 markerHeight="9" refX="10" refY="3">
-                <path class="blue" d="M0,0 L1,3 L0,6 L8,3 z"></path>
+                <path class="blue" d="M0,0 L0,6 L8,3 z"></path>
             </marker>
         </defs>
     </svg>
@@ -32,102 +30,144 @@
     <script type="modul" src="scripts/model.js"></script>
     <script type="modul" src="scripts/view.js"></script>
     <script type="modul" src="scripts/controller.js"></script>
+    <script type="modul" src="scripts/morphing.js"></script>
+    <script src="scripts/d3.min.js"></script>
 
-    <div style="display: flex;">
-        <!-- Sidebar -->
-        <aside style="width: 10%;">
-            Tools: <br>
-            <div class="toolbar" id="toolbar">
-                <!-- <input class="mainMode" type="radio" id="drawGraphRadio" name="tools" value="drawGraph">
-                <label for="drawGraphRadio" id="drawGraph">Draw graph</label>
-                <div class="subtoolbar hidden" id="drawToolbar">
-                    <input class="drawMode" type="radio" id="addRadio" name="tools" value="add">
-                    <label for="addRadio" id="add">Add</label>
-                    <input class="drawMode" type="radio" id="moveRadio" name="tools" value="move">
-                    <label for="moveRadio" id="move">Move</label>
-                    <input class="drawMode" type="radio" id="removeRadio" name="tools" value="remove">
-                    <label for="removeRadio" id="remove">Remove</label>
-                </div> -->
-                <label>
-                    Graph modes
-                    <div class="toolbarRow" id="graphModes">
-                        <input class="checkboxHidden drawMode" type="radio" id="addRadio" name="tools" value="add">
-                        <label for="addRadio" id="add">Add</label>
-                        <input class="checkboxHidden drawMode" type="radio" id="moveRadio" name="tools" value="move">
-                        <label for="moveRadio" id="move">Move</label>
-                        <input class="checkboxHidden drawMode" type="radio" id="removeRadio" name="tools"
-                            value="remove">
-                        <label for="removeRadio" id="remove">Delete</label>
-                        <label id="checkGraph">Check</label>
-                        <input class="checkboxHidden drawMode" type="radio" id="highlightRadio" name="tools"
-                            value="highlight">
-                        <label for="highlightRadio" id="highlight">Highlight</label>
-                    </div>
+    <header>
+        <div id="nameDiv">
+            <h2>REL Explorer</h2>
+        </div>
+        <!-- tools -->
+        <div class="toolbar" id="toolbar">
+            <div id="fileTools" class="toolset">
+                <label id="popupOpenFileButton" title="Open file or example graph">&#128449</label> <!-- open file-->
+                <label id="popupSaveFileButton" title="Save image or graph">&#x1F5AB</label> <!-- save file-->
+            </div>
+
+            <div class="toolsetDivider"></div>
+
+            <div id="graphModes" class="toolset">
+                <input class="checkboxHidden drawMode" type="radio" id="mouseRadio" name="tools" value="mouse">
+                <label for="mouseRadio" id="mouse" title="Pointer mouse"><img src="img/Cursor.png"
+                        alt="Pointer"></label>
+                <input class="checkboxHidden drawMode" type="radio" id="addRadio" name="tools" value="add">
+                <label for="addRadio" id="add" title="Add vertices and edges"><img src="img/Add.png" alt="Add"></label>
+                <input class="checkboxHidden drawMode" type="radio" id="moveRadio" name="tools" value="move">
+                <label for="moveRadio" id="move" title="Move vertices"><img src="img/Move.png" alt="Move"></label>
+                <input class="checkboxHidden drawMode" type="radio" id="removeRadio" name="tools" value="remove">
+                <label for="removeRadio" id="remove" style="font-size: 2rem; line-height: 0.6;"
+                    title="Remove vertices and edges">&#10799;</label>
+                <input class="checkboxHidden drawMode" type="radio" id="highlightRadio" name="tools" value="highlight">
+                <label for="highlightRadio" id="highlight" title="Highlight vertices and edges">
+                    <img src="img/Highlight.png" alt="highlight" height="22">
                 </label>
-                <div class="buttonTool">
-                    <input type="file" id="file-input" accept="application/json" />
-                    <label id="read-button">Load graph</label>
-                </div>
-                <label id="examplesButton" class="dropbtn">Load example
-                    <div id="examplesDropDown" class="dropdownContent hidden">
-                        <a id="n75">Graph n75</a>
-                        <a id="n58">Graph n58</a>
-                        <a id="n34">Graph n34</a>
-                    </div>
+                <label id="checkGraph" title="Check if graph is triangulated and contains no separating triangle">
+                    <img src="img/Check.png" alt="check" height="22">
                 </label>
-                <label id="saveGraph">Save graph</label>
-                <label id="saveSVG">Save SVG</label>
+            </div>
+
+            <div class="toolsetDivider"></div>
+
+            <div id="rangeTools" class="toolset">
                 <div class="toolbarRange">
-                    Vertex size
-                    <input type="range" min="1" max="20" value="4" class="slider" id="vertexSizeRange">
+                    V <input type="range" min="1" max="10" value="3" class="slider" id="vertexSizeRange">
                 </div>
                 <div class="toolbarRange">
-                    Edge size
-                    <input type="range" min="1" max="10" value="1" class="slider" id="edgeWidthRange">
-                </div>
-                <label id="computeREL">Compute REL</label>
-                <div class="toolbarCheckbox">
-                    <label id="showFlipCycles">
-                        Show flip cycles
-                    </label>
-                    <div class="toolbarRow">
-                        <label id="cwAllFlipsLabel">&#x226A;</label>
-                        <input class="checkboxHidden" type="checkbox" id="cwFlips" value="cwFlips">
-                        <label for="cwFlips" id="cwFlipsLabel">&#x21BB;</label>
-                        <input class="checkboxHidden" type="checkbox" id="ccwFlips" value="ccwFlips">
-                        <label for="ccwFlips" id="ccwFlipsLabel">&#x21BA;</label>
-                        <label id="ccwAllFlipsLabel">&#x226B;</label>
-                    </div>
-                </div>
-                <label id="computeRD">Compute RD</label>
-                <!-- <label id="adjustGraphtoRD">Adjust G to RD</label> -->
-                <div class="toolbarCheckbox" style="flex-direction: row">
-                    Shown layers
-                    <div class="toolbarRow">
-                        <input class="checkboxHidden" type="checkbox" id="showLayerGraph" name="tools" value="showG">
-                        <label for="showLayerGraph" id="showLayerGraphLabel">G</label>
-                        <input class="checkboxHidden" type="checkbox" id="showLayerRD" name="tools" value="showRD">
-                        <label for="showLayerRD" id="showLayerRDLabel">RD</label>
-                        <input class="checkboxHidden" type="checkbox" id="showLayerRDGraph" name="tools"
-                            value="showRDG">
-                        <label for="showLayerRDGraph" id="showLayerRDGraphLabel">RDG</label>
-                    </div>
+                    E <input type="range" min="1" max="10" value="1" class="slider" id="edgeWidthRange">
                 </div>
             </div>
-        </aside>
 
-        <!-- Main -->
-        <main style="flex: 1; overflow: auto;">
-            <!-- svg -->
-            <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 700 360" id="theSVG">
-            </svg>
-        </main>
+            <div class="toolsetDivider"></div>
+
+            <div class="toolset">
+                <input class="checkboxHidden" type="checkbox" id="showLayerGraph" name="tools" value="showG">
+                <label for="showLayerGraph" id="showLayerGraphLabel" title="Show normal graph">
+                    <img src="img/Graph.png" alt="graph" height="22">
+                </label>
+                <input class="checkboxHidden" type="checkbox" id="showREL" value="showREL">
+                <label for="showREL" id="computeREL" title="Show REL">
+                    <img src="img/REL.png" alt="REL" height="22">
+                </label>
+                <input class="checkboxHidden" type="checkbox" id="showLayerRD" name="tools" value="showRD">
+                <label for="showLayerRD" id="showLayerRDLabel" title="Show rectangular dual (RD)">
+                    <img src=" img/RD.png" alt="RD" height="28" style="margin: -3px  0 0 -3px;">
+                </label>
+                <input class="checkboxHidden" type="checkbox" id="showLayerRDGraph" name="tools" value="showRDG">
+                <label for="showLayerRDGraph" id="showLayerRDGraphLabel" title="Show graph on RD">
+                    <img src=" img/RDG.png" alt="RDG" height="28" style="margin: -3px  0 0 -3px;">
+                </label>
+
+                <input class="checkboxHidden" type="checkbox" id="cwFlips" value="cwFlips">
+                <label for="cwFlips" id="cwFlipsLabel" title="show cw rotations">&#x21BB;</label>
+                <input class="checkboxHidden" type="checkbox" id="allFlips" value="allFlips">
+                <label for="allFlips" id="allFlipsLabel" title="show all rotations">+</label>
+                <input class="checkboxHidden" type="checkbox" id="ccwFlips" value="ccwFlips">
+                <label for="ccwFlips" id="ccwFlipsLabel" title="show ccw rotations">&#x21BA;</label>
+            </div>
+
+            <div class="toolsetDivider"></div>
+
+            <div class="toolset">
+                <label id="cwAllFlipsLabel" title="jump to leftmost REL">&#x23EE;</label>
+                <label id="ccwAllFlipsLabel" title="jump to rightmost REL">&#x23ED;</label>
+            </div>
+
+            <div class="toolsetDivider"></div>
+
+            <div class="toolset">
+                <label id="morphAFourCycle">1</label>
+            </div>
+
+
+            <!-- <label id="adjustGraphtoRD">Adjust G to RD</label> -->
+        </div>
+    </header>
+
+    <!-- Main -->
+    <main style="flex: 1; overflow: auto;">
+        <!-- svg -->
+        <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 700 360" id="theSVG">
+        </svg>
+    </main>
+
+    <div id="popupOpenFile" class="popupGroup">
+        <div class="popupBackground"></div>
+        <div class="popupForm boxshadowy" id="popupOpenFileForm">
+            <h3>Open graph file</h3>
+            <p style="max-width: 300px;">Open a graph saved from here. In the future other formats might be supported.
+            </p>
+
+            <input type="file" id="file-input" accept="application/json" /><br>
+
+            <label id="readOpenFileButton">Open</label>
+            <label id="cancelOpenFileButton">Cancel</label>
+
+            <h3 style="margin-top: 3rem;">Or select an example:</h3>
+            <label id="n34">Graph n34</label>
+            <label id="n58">Graph n58</label>
+            <label id="n75">Graph n75</label>
+        </div>
+    </div>
+
+    <div id="popupSaveFile" class="popupGroup">
+        <div class="popupBackground"></div>
+        <div class="popupForm boxshadowy" id="popupSaveFileForm">
+            <h3>Save image or graph</h3>
+            <p style="max-width: 300px;">You can save the svg image or the graph.
+            </p>
+
+            <label id="saveGraph">Graph</label>
+            <label id="saveSVG">SVG</label>
+            <label id="cancelSaveFileButton">Cancel</label>
+        </div>
+    </div>
     </div>
 
     <script type="module">
         import * as controller from "./scripts/controller.js";
         import * as view from "./scripts/view.js";
         import { initGraph } from "./scripts/model.js";
+        import * as morphing from "./scripts/morphing.js";
         view.initSVG();
         view.initSizes(document.getElementById("vertexSizeRange").value, document.getElementById("edgeWidthRange").value);
         initGraph();
@@ -140,49 +180,63 @@
             tool.checked = false;
             controller.toolSelected(tool);
         }
+        document.getElementById("mouseRadio").checked = true;
 
         // saving, loading, checking
         document.getElementById("saveGraph").addEventListener("click", controller.saveGraphHandler);
         document.getElementById("saveSVG").addEventListener("click", controller.saveSVGHandler);
-        document.getElementById("read-button").addEventListener('click', controller.readFileHandler);
-        document.getElementById("checkGraph").addEventListener('click', controller.checkGraphHandler);
+        document.getElementById("readOpenFileButton").addEventListener('click', controller.readFileHandler);
+        document.getElementById("cancelOpenFileButton").addEventListener('click', controller.closeOpenFileForm);
+        document.getElementById("popupOpenFileButton").addEventListener('click', controller.openOpenFileForm);
+        document.getElementById("cancelSaveFileButton").addEventListener('click', controller.closeSaveFileForm);
+        document.getElementById("popupSaveFileButton").addEventListener('click', controller.openSaveFileForm);
 
         // algorithms
-        document.getElementById("computeREL").addEventListener('click', controller.computeRELHandler);
-        document.getElementById("showFlipCycles").addEventListener('click', controller.showFlipCyclesHandler);
+        document.getElementById("checkGraph").addEventListener('click', controller.checkGraphHandler);
+        document.getElementById("allFlipsLabel").addEventListener('click', controller.showFlipCyclesHandler);
         document.getElementById("cwFlipsLabel").addEventListener('click', controller.showFlipCyclesHandler);
         document.getElementById("ccwFlipsLabel").addEventListener('click', controller.showFlipCyclesHandler);
-        document.getElementById("cwAllFlipsLabel").addEventListener('click', controller.showFlipCyclesHandler);
-        document.getElementById("ccwAllFlipsLabel").addEventListener('click', controller.showFlipCyclesHandler);
-        document.getElementById("computeRD").addEventListener('click', controller.computeRDHandler);
+        document.getElementById("cwAllFlipsLabel").addEventListener('click', controller.extremalFlipCyclesHandler);
+        document.getElementById("ccwAllFlipsLabel").addEventListener('click', controller.extremalFlipCyclesHandler);
 
         // showing & sliders
         document.getElementById("vertexSizeRange").addEventListener("input", controller.rangeEventHandler);
         document.getElementById("edgeWidthRange").addEventListener("input", controller.rangeEventHandler);
         document.getElementById("showLayerGraph").addEventListener("change", controller.showLayersHandler);
         document.getElementById("showLayerGraph").checked = true;
+        document.getElementById("showREL").addEventListener("change", controller.showLayersHandler);
+        document.getElementById("showREL").checked = false;
         document.getElementById("showLayerRD").addEventListener("change", controller.showLayersHandler);
-        document.getElementById("showLayerRD").checked = true;
+        document.getElementById("showLayerRD").checked = false;
         document.getElementById("showLayerRDGraph").addEventListener("change", controller.showLayersHandler);
         document.getElementById("showLayerRDGraph").checked = false;
-        document.getElementById("cwFlips").checked = true;
-        document.getElementById("ccwFlips").checked = true;
+        document.getElementById("allFlips").checked = false;
+        document.getElementById("cwFlips").checked = false;
+        document.getElementById("ccwFlips").checked = false;
 
+        // morphing
+        document.getElementById("morphAFourCycle").addEventListener('click', morphing.morphSomethingHandler);
 
         // example dropdown menu
-        function showDropDown() {
-            console.log("clicked drop down button");
-            document.getElementById("examplesDropDown").classList.toggle("hidden");
-        }
+        // function showDropDown() {
+        //     console.log("clicked drop down button");
+        //     document.getElementById("examplesDropDown").classList.toggle("hidden");
+        // }
 
-        window.onclick = function (event) {
-            if (!event.target.matches('.dropbtn')) {
-                document.getElementById("examplesDropDown").classList.add("hidden");
-            }
-        }
+        // window.onclick = function (event) {
+        //     if (!event.target.matches('.dropbtn')) {
+        //         document.getElementById("examplesDropDown").classList.add("hidden");
+        //     }
+        // }
+
+        // <!-- <label id="examplesButton" class="dropbtn">Load example
+        //             <div id="examplesDropDown" class="dropdownContent hidden">
+        //                 <a id="n34">Graph n34</a>
+        //                 <a id="n58">Graph n58</a>
+        //                 <a id="n75">Graph n75</a>
+        //             </div>
+        //         </label> -->
     </script>
-
-
 </body>
 
 </html>
