@@ -619,7 +619,7 @@ export function replaceEndpoint(edge, oldEndpoint, newEndpoint) {
 }
 
 export class FlipCycle {
-    constructor(id, u, uEdge, v, vEdge, w, wEdge, x, xEdge, orientation) {
+    constructor(id, u, uEdge, v, vEdge, w, wEdge, x, xEdge, orientation, type = flipCycleType.UNSET) {
         this.id = id;
         this.u = u;
         this.ue = uEdge;
@@ -630,7 +630,35 @@ export class FlipCycle {
         this.x = x;
         this.xe = xEdge;
         this.orientation = orientation;
+        this.type = type;
+        this.emptyType = null;
     }
+
+    isEmpty() {
+        return (this.type === flipCycleType.EMPTY);
+    }
+}
+
+export async function setFlipCycleType(fourCycle) {
+    if (fourCycle.u.hasNeighbour(fourCycle.w)) {
+        fourCycle.type = flipCycleType.EMPTY;
+        if (fourCycle.orientation === orientations.CW) {
+            fourCycle.emptyType = flipCycleType.EMPTY_H2V;
+        } else {
+            fourCycle.emptyType = flipCycleType.EMPTY_V2H;
+        }
+    } else if (fourCycle.v.hasNeighbour(fourCycle.x)) {
+        fourCycle.type = flipCycleType.EMPTY;
+        if (fourCycle.orientation === orientations.CCW) {
+            fourCycle.emptyType = flipCycleType.EMPTY_H2V;
+        } else {
+            fourCycle.emptyType = flipCycleType.EMPTY_V2H;
+        }
+    } else {
+        fourCycle.type = flipCycleType.SEPARATING;
+    }
+
+    return fourCycle.type;
 }
 
 export async function getInteriorVerticesOfFourCycle(fourCycle) {
@@ -692,5 +720,13 @@ export const colors = {
 export const orientations = {
     CW: "cw",
     CCW: "ccw"
+}
+
+export const flipCycleType = {
+    UNSET: "unset",
+    SEPARATING: "sep",
+    EMPTY: "empty",
+    EMPTY_V2H: "empty-v2h", // vertical to horizontal
+    EMPTY_H2V: "empty-h2v" // horizontal to vertical
 }
 

@@ -3,29 +3,30 @@
 import * as model from "./model.js";
 
 export let svg = document.querySelector("#theSVG");
+export let svgTwo = document.querySelector("#theOtherSVG");
 
 export const WIDTH = 700;
 export const HEIGHT = 360;
 export const PADDING = 10;
 export const CLICK_TOLERANCE = 15;
-export const OFFSET = 2;
+export const OFFSET = 10;
 
-export let X_STEP = 17;
-export let Y_STEP = 17;
+export let X_STEP = 14;
+export let Y_STEP = 14;
 
 export function initSVG() {
     let layer = createSVGElement("g");
     layer.id = "rectangularDualLayer";
-    svg.append(layer);
+    svgTwo.append(layer);
 
-    layer = createSVGElement("g");
-    layer.id = "rectangularDualGraphELayer";
-    layer.classList.add("hidden");
-    svg.append(layer);
-    layer = createSVGElement("g");
-    layer.id = "rectangularDualGraphVLayer";
-    layer.classList.add("hidden");
-    svg.append(layer);
+    // layer = createSVGElement("g");
+    // layer.id = "rectangularDualGraphELayer";
+    // layer.classList.add("hidden");
+    // svg.append(layer);
+    // layer = createSVGElement("g");
+    // layer.id = "rectangularDualGraphVLayer";
+    // layer.classList.add("hidden");
+    // svg.append(layer);
 
     layer = createSVGElement("g");
     layer.id = "highlightLayer";
@@ -49,6 +50,11 @@ export function initSizes(vertexSize, edgeSize) {
     document.documentElement.style.setProperty('--edgeWidth', edgeSize);
     setArrowHeadAttributes();
     changeVertexHighlightSize(vertexSize);
+}
+
+export function setSteps(stepSize) {
+    X_STEP = stepSize;
+    Y_STEP = stepSize;
 }
 
 function changeVertexHighlightSize(vertexSize) {
@@ -76,19 +82,22 @@ export async function resetSVG() {
     for (let layer of svg.children) {
         resetLayer(layer.id);
     }
+    for (let layer of svgTwo.children) {
+        resetLayer(layer.id);
+    }
 
     return true;
 }
 
 export async function resetLayer(id) {
-    let layer = svg.getElementById(id);
+    let layer = document.getElementById(id);
     while (layer.firstChild) {
         layer.removeChild(layer.lastChild);
     }
 }
 
 export function showLayer(id) {
-    svg.getElementById(id).classList.remove("hidden");
+    document.getElementById(id).classList.remove("hidden");
 }
 
 export function hideLayer(id) {
@@ -365,6 +374,14 @@ export function unhighlightEdge(edge) {
     }
 }
 
+export function highlightFlipCycleFully(fourCycle) {
+    highlightVertex(fourCycle.u);
+    highlightVertex(fourCycle.v);
+    highlightVertex(fourCycle.w);
+    highlightVertex(fourCycle.x);
+    hightlightFlipCycle(fourCycle);
+}
+
 export function hightlightFlipCycle(flipCycle) {
     let flipCyclesLayer = svg.querySelector("#flipCyclesLayer");
 
@@ -402,8 +419,7 @@ export function drawRectangle(vertex, xmax, ymax) {
     // X_STEP = Math.min(X_STEP, Y_STEP);
     // Y_STEP = Math.min(X_STEP, Y_STEP);
 
-
-    let rectangularDualLayer = svg.querySelector("#rectangularDualLayer");
+    let rectangularDualLayer = svgTwo.querySelector("#rectangularDualLayer");
     let svgRect = createSVGElement("rect");
     svgRect.setAttribute("x", OFFSET + vertex.rectangle.x1 * X_STEP);
     svgRect.setAttribute("y", OFFSET + vertex.rectangle.y1 * Y_STEP);
@@ -424,6 +440,7 @@ export function drawRectangle(vertex, xmax, ymax) {
 }
 
 export async function drawRDGraph(graph) {
+    return;
     let xStep = (WIDTH - 2 * OFFSET) / graph.xmax;
     let yStep = (HEIGHT - 2 * OFFSET) / graph.ymax;
 

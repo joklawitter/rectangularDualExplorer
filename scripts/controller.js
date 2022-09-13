@@ -3,6 +3,7 @@
 import * as model from "./model.js";
 import * as view from "./view.js";
 import * as algorithms from "./algorithms.js";
+import * as morphing from "./morphing.js";
 
 let svg = null;
 
@@ -501,9 +502,15 @@ export let checkGraphHandler = {
     }
 }
 
-let showCWFlips = false;
-let showCCWFlips = false;
-let showAllFlips = false;
+let showCWFlips;
+let showCCWFlips;
+let showAllFlips;
+
+export function initFlipStatus() {
+    showCWFlips = false;
+    showCCWFlips = false;
+    showAllFlips = false;
+}
 
 export let showFlipCyclesHandler = {
     async handleEvent(event) {
@@ -515,11 +522,12 @@ export let showFlipCyclesHandler = {
 
         if (!model.graph.hasREL) {
             await computeREL();
+            document.getElementById("showREL").checked = true;
         }
 
         // (re)compute
         console.log("> find flip cycles");
-        let flipCycles = computeFlipCycles();
+        let flipCycles = await computeFlipCycles();
 
         // set state as clicked
         if (event.currentTarget.id == "allFlipsLabel") {
@@ -534,7 +542,7 @@ export let showFlipCyclesHandler = {
 
         if (showCWFlips != showCCWFlips) {
             showAllFlips = false;
-        } else {
+        } else if (showCWFlips) {
             showAllFlips = true;
         }
 
@@ -549,6 +557,8 @@ export let showFlipCyclesHandler = {
                 || ((flipCycle.orientation === model.orientations.CCW) && showCCWFlips)) {
                 view.hightlightFlipCycle(flipCycle);
                 flipCycle.svgFlipCycle.addEventListener("click", flipCycleHandler);
+                flipCycle.svgFlipCycle.addEventListener("mouseenter", flipCycleHoverInHandler);
+                flipCycle.svgFlipCycle.addEventListener("mouseleave", flipCycleHoverOutHandler);
             }
         }
     }
@@ -572,7 +582,7 @@ export let extremalFlipCyclesHandler = {
             let flippedACycle = false;
             do {
                 flippedACycle = false;
-                let flipCycles = computeFlipCycles();
+                let flipCycles = await computeFlipCycles();
                 for (const flipCycle of flipCycles) {
                     if (flipCycle.orientation === orientation) {
                         model.graph.flipFlipCycle(flipCycle);
@@ -583,29 +593,89 @@ export let extremalFlipCyclesHandler = {
                 }
             } while (flippedACycle)
         }
+
+        computeRD()
     }
 }
 
-function computeFlipCycles() {
-    let flipCycles = algorithms.findFlipCycles(model.graph);
+export async function computeFlipCycles() {
+    let flipCycles = await algorithms.findFlipCycles(model.graph);
     model.graph.flipCycles = flipCycles;
+
     return flipCycles;
 }
 
 export let flipCycleHandler = {
     async handleEvent(event) {
-        resetRD();
-        let svgFlipCycle = event.target;
-        await model.graph.flipFlipCycle(svgFlipCycle.flipCycle);
-
-        view.resetLayer("flipCyclesLayer");
-
-        showFlipCyclesHandler.handleEvent({
-            'currentTarget': {
-                'id': "keep-as-is"
+        // 
+        for (const fourCycle of model.graph.flipCycles) {
+            if (fourCycle.svgFlipCycle !== undefined) {
+                fourCycle.svgFlipCycle.removeEventListener("mouseenter", flipCycleHoverInHandler);
+                fourCycle.svgFlipCycle.removeEventListener("mouseleave", flipCycleHoverOutHandler);
+                if (fourCycle.u.svgRect !== null) {
+                    unhighlightFlipCycleHover(fourCycle);
+                }
             }
-        });
+        }
+        let svgFlipCycle = event.target;
+        if (document.getElementById("showLayerRD").checked) {
+            await morphing.animateRotation(svgFlipCycle.flipCycle, 100, 3000, true);
+            view.resetLayer("flipCyclesLayer");
+        } else {
+            await model.graph.flipFlipCycle(svgFlipCycle.flipCycle);
+
+            // resetRD();
+            // await algorithms.computeRectangularDual(model.graph);
+            // view.drawRD(model.graph);
+
+            showFlipCyclesHandler.handleEvent({
+                'currentTarget': {
+                    'id': "keep-as-is"
+                }
+            });
+        }
     }
+}
+
+export let flipCycleHoverInHandler = {
+    async handleEvent(event) {
+        let svgFlipCycle = event.target;
+        let fourCycle = svgFlipCycle.flipCycle;
+        if (fourCycle.u.svgRect !== null) {
+            if (fourCycle.orientation === model.orientations.CW) {
+                fourCycle.u.svgRect.classList.add("highlightHoverCW");
+                fourCycle.v.svgRect.classList.add("highlightHoverCW");
+                fourCycle.w.svgRect.classList.add("highlightHoverCW");
+                fourCycle.x.svgRect.classList.add("highlightHoverCW");
+            } else {
+                fourCycle.u.svgRect.classList.add("highlightHoverCCW");
+                fourCycle.v.svgRect.classList.add("highlightHoverCCW");
+                fourCycle.w.svgRect.classList.add("highlightHoverCCW");
+                fourCycle.x.svgRect.classList.add("highlightHoverCCW");
+            }
+        }
+    }
+}
+
+export let flipCycleHoverOutHandler = {
+    async handleEvent(event) {
+        let svgFlipCycle = event.target;
+        let fourCycle = svgFlipCycle.flipCycle;
+        if (fourCycle.u.svgRect !== null) {
+            unhighlightFlipCycleHover(fourCycle);
+        }
+    }
+}
+
+function unhighlightFlipCycleHover(fourCycle) {
+    fourCycle.u.svgRect.classList.remove("highlightHoverCW");
+    fourCycle.v.svgRect.classList.remove("highlightHoverCW");
+    fourCycle.w.svgRect.classList.remove("highlightHoverCW");
+    fourCycle.x.svgRect.classList.remove("highlightHoverCW");
+    fourCycle.u.svgRect.classList.remove("highlightHoverCCW");
+    fourCycle.v.svgRect.classList.remove("highlightHoverCCW");
+    fourCycle.w.svgRect.classList.remove("highlightHoverCCW");
+    fourCycle.x.svgRect.classList.remove("highlightHoverCCW");
 }
 
 export let showLayersHandler = {
@@ -616,9 +686,9 @@ export let showLayersHandler = {
                 view.showLayer("edgeLayer");
                 view.showLayer("vertexLayer");
                 view.showLayer("highlightLayer");
-                view.hideLayer("rectangularDualGraphELayer");
-                view.hideLayer("rectangularDualGraphVLayer");
-                document.getElementById("showLayerRDGraph").checked = false;
+                // view.hideLayer("rectangularDualGraphELayer");
+                // view.hideLayer("rectangularDualGraphVLayer");
+                // document.getElementById("showLayerRDGraph").checked = false;
             } else {
                 view.hideLayer("edgeLayer");
                 view.hideLayer("vertexLayer");
@@ -651,39 +721,39 @@ export let showLayersHandler = {
             }
         } else if (selection.value === "showRD") {
             if (selection.checked) {
-                // if (model.graph.vertices[0].rectangle == null) {
                 computeRD();
-                // }
+                document.getElementById("showREL").checked = true;
                 view.showLayer("rectangularDualLayer");
             } else {
                 view.hideLayer("rectangularDualLayer");
             }
-        } else if (selection.value === "showRDG") {
-            if (selection.checked) {
-                if (model.graph.vertices[0].rectangle == null) {
-                    computeRD();
-                }
-                view.showLayer("rectangularDualLayer");
-                document.getElementById("showREL").checked = true;
-                document.getElementById("showLayerRD").checked = true;
+            // } else if (selection.value === "showRDG") {
+            //     if (selection.checked) {
+            //         if (model.graph.vertices[0].rectangle == null) {
+            //             computeRD();
+            //         }
+            //         view.showLayer("rectangularDualLayer");
+            //         document.getElementById("showREL").checked = true;
+            //         document.getElementById("showLayerRD").checked = true;
 
-                view.hideLayer("edgeLayer");
-                view.hideLayer("vertexLayer");
-                view.hideLayer("highlightLayer");
+            //         view.hideLayer("edgeLayer");
+            //         view.hideLayer("vertexLayer");
+            //         view.hideLayer("highlightLayer");
 
-                view.showLayer("rectangularDualGraphELayer");
-                view.showLayer("rectangularDualGraphVLayer");
-                document.getElementById("showLayerGraph").checked = false;
-            } else {
-                // hide RD graph
-                view.hideLayer("rectangularDualGraphELayer");
-                view.hideLayer("rectangularDualGraphVLayer");
-                // show normal graph
-                view.showLayer("edgeLayer");
-                view.showLayer("vertexLayer");
-                view.showLayer("highlightLayer");
-                document.getElementById("showLayerGraph").checked = true;
-            }
+            //         view.showLayer("rectangularDualGraphELayer");
+            //         view.showLayer("rectangularDualGraphVLayer");
+            //         document.getElementById("showLayerGraph").checked = false;
+            //     } else {
+            //         // hide RD graph
+            //         view.hideLayer("rectangularDualGraphELayer");
+            //         view.hideLayer("rectangularDualGraphVLayer");
+            //         // show normal graph
+            //         view.showLayer("edgeLayer");
+            //         view.showLayer("vertexLayer");
+            //         view.showLayer("highlightLayer");
+            //         document.getElementById("showLayerGraph").checked = true;
+            //     }
+            // }
         }
     }
 }
@@ -719,8 +789,8 @@ async function computeREL() {
 
 async function computeRD() {
     resetDrawMode();
+    view.resetLayer("rectangularDualLayer");
 
-    view.resetLayer("flipCyclesLayer");
     if (!model.graph.hasREL) {
         await computeREL();
     }
@@ -732,8 +802,8 @@ async function computeRD() {
 
 function resetRD() {
     view.resetLayer("rectangularDualLayer");
-    view.resetLayer("rectangularDualGraphELayer");
-    view.resetLayer("rectangularDualGraphVLayer");
+    // view.resetLayer("rectangularDualGraphELayer");
+    // view.resetLayer("rectangularDualGraphVLayer");
     document.getElementById("showLayerRD").checked = false;
     // for (const vertex of model.graph.vertices) {
     //     vertex.rectangle = null;
@@ -765,5 +835,5 @@ async function resetViewedLayers() {
     document.getElementById("showREL").checked = false;
     document.getElementById("showLayerGraph").checked = false;
     document.getElementById("showLayerRD").checked = false;
-    document.getElementById("showLayerRDGraph").checked = false;
+    // document.getElementById("showLayerRDGraph").checked = false;
 }

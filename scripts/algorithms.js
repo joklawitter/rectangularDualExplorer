@@ -2,7 +2,7 @@
 import * as view from "./view.js";
 import * as model from "./model.js";
 
-export async function computeREL(graph, canonicalOrder) {
+export async function computeREL(graph) {
     // canonical order should have been computed
     // and engrained in graph
     // i.e. vertices have .orderIndex, edges oriented and sorted in->out
@@ -230,7 +230,7 @@ export async function engrainCanonicalOrder(graph, canonicalOrder) {
     }
 }
 
-export function findFlipCycles(graph) {
+export async function findFlipCycles(graph) {
     let flipCycles = [];
 
     // try to find cycle u, v, w, x
@@ -486,11 +486,10 @@ export async function computeDual(graph) {
     // if color subgraph consists of only a circle
     // (when frame only contains a path),
     // then we have to set everything by hand
-    if (graph.vertices[0].edges.length <= 2) {
-        console.log(" special case of thin colored subgraph");
-        const dualEdge = new model.Edge("dual" + 0, s, t);
-        dualEdges.push(dualEdge);
-    }
+    // if (graph.vertices[4].edges.length <= 2) {
+    const dualEdge = new model.Edge("dual" + 0, s, t);
+    dualEdges.push(dualEdge);
+    // }
 
     // 2. dual edges
     // every edge gives dual edge from leftFace to rightFace

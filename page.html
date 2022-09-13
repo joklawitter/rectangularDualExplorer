@@ -92,17 +92,17 @@
                 <label for="showLayerRD" id="showLayerRDLabel" title="Show rectangular dual (RD)">
                     <img src=" img/RD.png" alt="RD" height="28" style="margin: -3px  0 0 -3px;">
                 </label>
-                <input class="checkboxHidden" type="checkbox" id="showLayerRDGraph" name="tools" value="showRDG">
+                <!-- <input class="checkboxHidden" type="checkbox" id="showLayerRDGraph" name="tools" value="showRDG">
                 <label for="showLayerRDGraph" id="showLayerRDGraphLabel" title="Show graph on RD">
                     <img src=" img/RDG.png" alt="RDG" height="28" style="margin: -3px  0 0 -3px;">
-                </label>
+                </label> -->
 
                 <input class="checkboxHidden" type="checkbox" id="cwFlips" value="cwFlips">
-                <label for="cwFlips" id="cwFlipsLabel" title="show cw rotations">&#x21BB;</label>
+                <label for="-" id="cwFlipsLabel" title="show cw rotations">&#x21BB;</label>
                 <input class="checkboxHidden" type="checkbox" id="allFlips" value="allFlips">
-                <label for="allFlips" id="allFlipsLabel" title="show all rotations">+</label>
+                <label for="-" id="allFlipsLabel" title="show all rotations">+</label>
                 <input class="checkboxHidden" type="checkbox" id="ccwFlips" value="ccwFlips">
-                <label for="ccwFlips" id="ccwFlipsLabel" title="show ccw rotations">&#x21BA;</label>
+                <label for="-" id="ccwFlipsLabel" title="show ccw rotations">&#x21BA;</label>
             </div>
 
             <div class="toolsetDivider"></div>
@@ -116,6 +116,7 @@
 
             <div class="toolset">
                 <label id="morphAFourCycle">1</label>
+                <label id="morphEmptyFourCycle">2</label>
             </div>
 
 
@@ -124,9 +125,11 @@
     </header>
 
     <!-- Main -->
-    <main style="flex: 1; overflow: auto;">
+    <main>
         <!-- svg -->
-        <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 700 360" id="theSVG">
+        <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 700 360" id="theSVG" class="boxshadowy">
+        </svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 700 360" id="theOtherSVG" class="boxshadowy">
         </svg>
     </main>
 
@@ -190,14 +193,19 @@
         document.getElementById("popupOpenFileButton").addEventListener('click', controller.openOpenFileForm);
         document.getElementById("cancelSaveFileButton").addEventListener('click', controller.closeSaveFileForm);
         document.getElementById("popupSaveFileButton").addEventListener('click', controller.openSaveFileForm);
-
-        // algorithms
         document.getElementById("checkGraph").addEventListener('click', controller.checkGraphHandler);
+
+
+        // flips/rotations
         document.getElementById("allFlipsLabel").addEventListener('click', controller.showFlipCyclesHandler);
         document.getElementById("cwFlipsLabel").addEventListener('click', controller.showFlipCyclesHandler);
         document.getElementById("ccwFlipsLabel").addEventListener('click', controller.showFlipCyclesHandler);
         document.getElementById("cwAllFlipsLabel").addEventListener('click', controller.extremalFlipCyclesHandler);
         document.getElementById("ccwAllFlipsLabel").addEventListener('click', controller.extremalFlipCyclesHandler);
+        document.getElementById("allFlips").checked = false;
+        document.getElementById("cwFlips").checked = false;
+        document.getElementById("ccwFlips").checked = false;
+        controller.initFlipStatus();
 
         // showing & sliders
         document.getElementById("vertexSizeRange").addEventListener("input", controller.rangeEventHandler);
@@ -208,34 +216,12 @@
         document.getElementById("showREL").checked = false;
         document.getElementById("showLayerRD").addEventListener("change", controller.showLayersHandler);
         document.getElementById("showLayerRD").checked = false;
-        document.getElementById("showLayerRDGraph").addEventListener("change", controller.showLayersHandler);
-        document.getElementById("showLayerRDGraph").checked = false;
-        document.getElementById("allFlips").checked = false;
-        document.getElementById("cwFlips").checked = false;
-        document.getElementById("ccwFlips").checked = false;
+        // document.getElementById("showLayerRDGraph").addEventListener("change", controller.showLayersHandler);
+        // document.getElementById("showLayerRDGraph").checked = false;
 
         // morphing
         document.getElementById("morphAFourCycle").addEventListener('click', morphing.morphSomethingHandler);
-
-        // example dropdown menu
-        // function showDropDown() {
-        //     console.log("clicked drop down button");
-        //     document.getElementById("examplesDropDown").classList.toggle("hidden");
-        // }
-
-        // window.onclick = function (event) {
-        //     if (!event.target.matches('.dropbtn')) {
-        //         document.getElementById("examplesDropDown").classList.add("hidden");
-        //     }
-        // }
-
-        // <!-- <label id="examplesButton" class="dropbtn">Load example
-        //             <div id="examplesDropDown" class="dropdownContent hidden">
-        //                 <a id="n34">Graph n34</a>
-        //                 <a id="n58">Graph n58</a>
-        //                 <a id="n75">Graph n75</a>
-        //             </div>
-        //         </label> -->
+        document.getElementById("morphEmptyFourCycle").addEventListener('click', morphing.morphSomethingElseHandler);
     </script>
 </body>
 
