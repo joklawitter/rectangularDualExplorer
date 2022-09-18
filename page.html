@@ -75,6 +75,9 @@
                 <div class="toolbarRange">
                     E <input type="range" min="1" max="10" value="1" class="slider" id="edgeWidthRange">
                 </div>
+                <div class="toolbarRange">
+                    R <input type="range" min="5" max="35" value="18" class="slider" id="rectangleStepRange">
+                </div>
             </div>
 
             <div class="toolsetDivider"></div>
@@ -90,7 +93,11 @@
                 </label>
                 <input class="checkboxHidden" type="checkbox" id="showLayerRD" name="tools" value="showRD">
                 <label for="showLayerRD" id="showLayerRDLabel" title="Show rectangular dual (RD)">
-                    <img src=" img/RD.png" alt="RD" height="28" style="margin: -3px  0 0 -3px;">
+                    <img src="img/RD.png" alt="RD" height="28" style="margin: -3px  0 0 -3px;">
+                </label>
+                <input class="checkboxHidden" type="checkbox" id="showMorphs" name="tools" value="showMorphs">
+                <label for="showMorphs" id="showMorphsLabel" title="Morph in RD when rotating four cycles">
+                    <img src="img/Morphs.png" alt="Morph" height="28" style="margin: -3px  0 0 -3px;">
                 </label>
                 <!-- <input class="checkboxHidden" type="checkbox" id="showLayerRDGraph" name="tools" value="showRDG">
                 <label for="showLayerRDGraph" id="showLayerRDGraphLabel" title="Show graph on RD">
@@ -115,8 +122,10 @@
             <div class="toolsetDivider"></div>
 
             <div class="toolset">
-                <label id="morphAFourCycle">1</label>
-                <label id="morphEmptyFourCycle">2</label>
+                <label id="morphExample1">1</label>
+                <label id="morphExample2">2</label>
+                <label id="morphExample3">3</label>
+                <label id="morphExample4">4</label>
             </div>
 
 
@@ -202,26 +211,29 @@
         document.getElementById("ccwFlipsLabel").addEventListener('click', controller.showFlipCyclesHandler);
         document.getElementById("cwAllFlipsLabel").addEventListener('click', controller.extremalFlipCyclesHandler);
         document.getElementById("ccwAllFlipsLabel").addEventListener('click', controller.extremalFlipCyclesHandler);
-        document.getElementById("allFlips").checked = false;
-        document.getElementById("cwFlips").checked = false;
-        document.getElementById("ccwFlips").checked = false;
         controller.initFlipStatus();
 
         // showing & sliders
         document.getElementById("vertexSizeRange").addEventListener("input", controller.rangeEventHandler);
         document.getElementById("edgeWidthRange").addEventListener("input", controller.rangeEventHandler);
+        document.getElementById("rectangleStepRange").addEventListener("input", controller.rangeEventHandler);
         document.getElementById("showLayerGraph").addEventListener("change", controller.showLayersHandler);
         document.getElementById("showLayerGraph").checked = true;
         document.getElementById("showREL").addEventListener("change", controller.showLayersHandler);
         document.getElementById("showREL").checked = false;
         document.getElementById("showLayerRD").addEventListener("change", controller.showLayersHandler);
         document.getElementById("showLayerRD").checked = false;
+        document.getElementById("showMorphs").addEventListener("change", controller.showLayersHandler);
+        document.getElementById("showMorphs").checked = false;
         // document.getElementById("showLayerRDGraph").addEventListener("change", controller.showLayersHandler);
         // document.getElementById("showLayerRDGraph").checked = false;
 
         // morphing
-        document.getElementById("morphAFourCycle").addEventListener('click', morphing.morphSomethingHandler);
-        document.getElementById("morphEmptyFourCycle").addEventListener('click', morphing.morphSomethingElseHandler);
+        document.getElementById("morphExample1").addEventListener('click', morphing.morphEx1Handler);
+        document.getElementById("morphExample2").addEventListener('click', morphing.morphEx2Handler);
+        document.getElementById("morphExample3").addEventListener('click', morphing.morphEx3Handler);
+        document.getElementById("morphExample4").addEventListener('click', morphing.morphSomethingHandler);
+        // document.getElementById("morphEmptyFourCycle").addEventListener('click', morphing.morphSomethingElseHandler);
     </script>
 </body>
 

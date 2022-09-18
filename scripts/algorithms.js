@@ -308,14 +308,13 @@ export async function computeRectangularDual(graph, log = false) {
     const blueSubgraph = await computeColorSubgraph(graph, model.colors.BLUE);
     // console.log("i.b) and its blue dual");
     const blueDual = await computeDual(blueSubgraph);
-    // console.log("i.c) and an order on that one");
-
     // console.log("ii.a) compute red subgraph");
     const redSubgraph = await computeColorSubgraph(graph, model.colors.RED);
     // console.log("ii.b) and its red dual");
     const redDual = await computeDual(redSubgraph);
-    // console.log("ii.c) and an order on that one");
 
+
+    // console.log("i+ii.c) and order them");
     const blueMax = await computeTopologicalOrder(blueDual);
     const redMax = await computeTopologicalOrder(redDual);
 
@@ -409,14 +408,19 @@ export async function computeColorSubgraph(graph, color) {
     }
 
     // add phantom edge between source and sink
-    let s, t;
+    let s = null;
+    let t = null;
     for (const v of vertices) {
         // await v.orderEdgesInOut();
         await v.setNumberIncomingEdges();
         if ((v.numIncomingEdges === 0) && (v.edges.length > 0)) {
-            s = v;
+            if (s === null) {
+                s = v;
+            }
         } else if ((v.numIncomingEdges === v.edges.length) && (v.edges.length > 0)) {
-            t = v;
+            if (t === null) {
+                t = v;
+            }
         }
     }
     s.isSource = true;
@@ -471,7 +475,7 @@ export async function computeDual(graph) {
     let dualEdges = [];
 
     // 1. faces
-    // every vertex v is local source of a face
+    // every vertex v can be local source of a face
     // start at an outgoing edge e that is not rightmost outgoing edge
     // go up as long edge is rightmost incoming edge, say at w
     // then go up along edge after e at v until w
@@ -482,14 +486,11 @@ export async function computeDual(graph) {
     faces.push(t);
     await computeFaces();
 
-    // 1.5 special case of thin graph
-    // if color subgraph consists of only a circle
-    // (when frame only contains a path),
-    // then we have to set everything by hand
-    // if (graph.vertices[4].edges.length <= 2) {
+    // 1.5 at least have edge from s to t
+    // to ensure min width if color subgraph consists of only a circle
+    // (path + phantom edge)
     const dualEdge = new model.Edge("dual" + 0, s, t);
     dualEdges.push(dualEdge);
-    // }
 
     // 2. dual edges
     // every edge gives dual edge from leftFace to rightFace
@@ -561,9 +562,10 @@ export async function computeDual(graph) {
             w.leftFace = f;
             let eNext = w.edges[w.numIncomingEdges];
             if (eNext == undefined) {
-                console.log("error");
-                console.log(eNext);
-                console.log(w);
+                console.error("walking right boundary failed");
+                console.log("e", e);
+                console.log("eNext", eNext);
+                console.log("w", w);
                 return true;
             }
             if (await walkRightBoundary(eNext, f)) {

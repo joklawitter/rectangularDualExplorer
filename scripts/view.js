@@ -11,8 +11,8 @@ export const PADDING = 10;
 export const CLICK_TOLERANCE = 15;
 export const OFFSET = 10;
 
-export let X_STEP = 14;
-export let Y_STEP = 14;
+export let X_STEP = 17;
+export let Y_STEP = 17;
 
 export function initSVG() {
     let layer = createSVGElement("g");
@@ -101,7 +101,7 @@ export function showLayer(id) {
 }
 
 export function hideLayer(id) {
-    svg.getElementById(id).classList.add("hidden");
+    document.getElementById(id).classList.add("hidden");
 }
 
 export async function drawGraph(graph) {
@@ -122,7 +122,7 @@ export async function drawGraph(graph) {
     coordinates.x = WIDTH - PADDING;
     drawPolylineFromToVia(graph.vertices[3].svgVertex, graph.vertices[2].svgVertex, coordinates, graph.edges[1]);
 
-    coordinates.y = HEIGHT - PADDING;
+    coordinates.y = (HEIGHT - PADDING);
     drawPolylineFromToVia(graph.vertices[2].svgVertex, graph.vertices[1].svgVertex, coordinates, graph.edges[2]);
 
     coordinates.x = PADDING;
@@ -327,7 +327,11 @@ export function highlightVertex(vertex, colorClass = null) {
     svgHighlight.id = "svg-highlight-" + vertex.id;
 
     if (vertex.svgRect != null) {
-        vertex.svgRect.setAttribute("fill", getComputedStyle(document.documentElement).getPropertyValue('--highlightFill'));
+        if (colorClass === null) {
+            vertex.svgRect.setAttribute("fill", getComputedStyle(document.documentElement).getPropertyValue('--highlightFill'));
+        } else {
+            vertex.svgRect.setAttribute("fill", getComputedStyle(document.documentElement).getPropertyValue('--highlightCCW'));
+        }
     }
 
     vertex.svgHighlight = svgHighlight;
@@ -375,10 +379,17 @@ export function unhighlightEdge(edge) {
 }
 
 export function highlightFlipCycleFully(fourCycle) {
-    highlightVertex(fourCycle.u);
-    highlightVertex(fourCycle.v);
-    highlightVertex(fourCycle.w);
-    highlightVertex(fourCycle.x);
+    if (fourCycle.orientation === model.orientations.CW) {
+        highlightVertex(fourCycle.u);
+        highlightVertex(fourCycle.v);
+        highlightVertex(fourCycle.w);
+        highlightVertex(fourCycle.x);
+    } else {
+        highlightVertex(fourCycle.u, "highlightCCW");
+        highlightVertex(fourCycle.v, "highlightCCW");
+        highlightVertex(fourCycle.w, "highlightCCW");
+        highlightVertex(fourCycle.x, "highlightCCW");
+    }
     hightlightFlipCycle(fourCycle);
 }
 
@@ -413,6 +424,17 @@ export async function drawRD(graph) {
     }
 }
 
+export async function redrawRectangularDual() {
+    if (model.graph.vertices.svgRect !== null) {
+        for (const vertex of model.graph.vertices) {
+            vertex.svgRect.setAttribute("x", OFFSET + vertex.rectangle.x1 * X_STEP);
+            vertex.svgRect.setAttribute("y", OFFSET + vertex.rectangle.y1 * Y_STEP);
+            vertex.svgRect.setAttribute("width", (vertex.rectangle.x2 * X_STEP - vertex.rectangle.x1 * X_STEP));
+            vertex.svgRect.setAttribute("height", (vertex.rectangle.y2 * Y_STEP - vertex.rectangle.y1 * Y_STEP));
+        }
+    }
+}
+
 export function drawRectangle(vertex, xmax, ymax) {
     // let X_STEP = (WIDTH - 2 * OFFSET) / xmax;
     // let Y_STEP = (HEIGHT - 2 * OFFSET) / ymax;
@@ -427,6 +449,7 @@ export function drawRectangle(vertex, xmax, ymax) {
     svgRect.setAttribute("height", (vertex.rectangle.y2 * Y_STEP - vertex.rectangle.y1 * Y_STEP));
     svgRect.setAttribute("stroke", "darkgray");
     svgRect.setAttribute("id", "svgRect" + vertex.id);
+    svgRect.classList.add("fillOpacity");
     if (vertex.svgHighlight != null) {
         svgRect.setAttribute("fill", getComputedStyle(document.documentElement).getPropertyValue('--highlightFill'));
     } else {

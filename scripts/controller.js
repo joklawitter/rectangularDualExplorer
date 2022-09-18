@@ -96,7 +96,12 @@ export async function addVertexClick(event) {
     console.log(startSvgVertex)
 
     if (startSvgVertex != null) {
-        endHalfEdge(svgVertex, svg);
+        if (startSvgVertex === svgVertex) {
+            console.log("loop edge prevented, half edge aborded");
+            resetHalfEdge();
+        } else {
+            endHalfEdge(svgVertex, svg);
+        }
     } else {
         initHalfEdge(svgVertex,)
     }
@@ -167,16 +172,20 @@ function initHalfEdge(svgVertex) {
     svg.addEventListener("mousemove", mouseMoveHandler);
 }
 
-function endHalfEdge(endVertex) {
+function endHalfEdge(endSvgVertex) {
     console.log("end half edge");
-    let edge = new model.Edge("e" + model.graph.edges.length, startSvgVertex.vertex, endVertex.vertex);
-    model.graph.addEdge(edge);
-    let svgEdge = view.drawEdge(edge);
-    edge.svgEdge = svgEdge;
+    if (startSvgVertex.vertex.hasNeighbour(endSvgVertex.vertex)) {
+        console.log("... but edge already exists");
+    } else {
+        let edge = new model.Edge("e" + model.graph.edges.length, startSvgVertex.vertex, endSvgVertex.vertex);
+        model.graph.addEdge(edge);
+        let svgEdge = view.drawEdge(edge);
+        edge.svgEdge = svgEdge;
 
-    svgEdge.addEventListener("click", edgeClickHandler);
+        svgEdge.addEventListener("click", edgeClickHandler);
 
-    console.log("add edge: " + edge);
+        console.log("add edge: ", edge);
+    }
 
     resetHalfEdge();
 }
@@ -200,8 +209,11 @@ export let rangeEventHandler = {
     handleEvent(event) {
         if (event.currentTarget.id === "vertexSizeRange") {
             view.changeVertexSize(event.currentTarget.value);
-        } else if (event.currentTarget.id = "edgeWidthRange") {
+        } else if (event.currentTarget.id === "edgeWidthRange") {
             view.changeEdgeWidth(event.currentTarget.value);
+        } else if (event.currentTarget.id === "rectangleStepRange") {
+            view.setSteps(event.currentTarget.value);
+            view.redrawRectangularDual();
         }
     }
 }
@@ -471,6 +483,15 @@ export let loadExampleHandler = {
             case "graph-largeRotation":
                 filename = "./examples/graph-largeRotation.json";
                 break;
+            case "ex1":
+                filename = "./examples/ex1.json";
+                break;
+            case "ex2":
+                filename = "./examples/ex2.json";
+                break;
+            case "ex3":
+                filename = "./examples/ex4.json";
+                break;
         }
 
         closeOpenFileForm();
@@ -502,14 +523,17 @@ export let checkGraphHandler = {
     }
 }
 
-let showCWFlips;
-let showCCWFlips;
-let showAllFlips;
+export let showCWFlips;
+export let showCCWFlips;
+export let showAllFlips;
 
 export function initFlipStatus() {
     showCWFlips = false;
     showCCWFlips = false;
     showAllFlips = false;
+    document.getElementById("allFlips").checked = false;
+    document.getElementById("cwFlips").checked = false;
+    document.getElementById("ccwFlips").checked = false;
 }
 
 export let showFlipCyclesHandler = {
@@ -618,15 +642,16 @@ export let flipCycleHandler = {
             }
         }
         let svgFlipCycle = event.target;
-        if (document.getElementById("showLayerRD").checked) {
+        if (document.getElementById("showLayerRD").checked && document.getElementById("showMorphs").checked) {
             await morphing.animateRotation(svgFlipCycle.flipCycle, 100, 3000, true);
             view.resetLayer("flipCyclesLayer");
         } else {
             await model.graph.flipFlipCycle(svgFlipCycle.flipCycle);
 
-            // resetRD();
-            // await algorithms.computeRectangularDual(model.graph);
-            // view.drawRD(model.graph);
+            resetRD();
+            await algorithms.computeRectangularDual(model.graph);
+            view.drawRD(model.graph);
+            document.getElementById("showLayerRD").checked = true;
 
             showFlipCyclesHandler.handleEvent({
                 'currentTarget': {
@@ -727,34 +752,43 @@ export let showLayersHandler = {
             } else {
                 view.hideLayer("rectangularDualLayer");
             }
-            // } else if (selection.value === "showRDG") {
-            //     if (selection.checked) {
-            //         if (model.graph.vertices[0].rectangle == null) {
-            //             computeRD();
-            //         }
-            //         view.showLayer("rectangularDualLayer");
-            //         document.getElementById("showREL").checked = true;
-            //         document.getElementById("showLayerRD").checked = true;
+        } else if (selection.value === "showMorphs") {
+            if (selection.checked) {
+                if (document.getElementById("showLayerRD").checked === false) {
+                    document.getElementById("showLayerRD").checked = true;
+                    document.getElementById("showREL").checked = true;
+                    computeRD();
+                }
+            }
 
-            //         view.hideLayer("edgeLayer");
-            //         view.hideLayer("vertexLayer");
-            //         view.hideLayer("highlightLayer");
-
-            //         view.showLayer("rectangularDualGraphELayer");
-            //         view.showLayer("rectangularDualGraphVLayer");
-            //         document.getElementById("showLayerGraph").checked = false;
-            //     } else {
-            //         // hide RD graph
-            //         view.hideLayer("rectangularDualGraphELayer");
-            //         view.hideLayer("rectangularDualGraphVLayer");
-            //         // show normal graph
-            //         view.showLayer("edgeLayer");
-            //         view.showLayer("vertexLayer");
-            //         view.showLayer("highlightLayer");
-            //         document.getElementById("showLayerGraph").checked = true;
-            //     }
-            // }
         }
+        // } else if (selection.value === "showRDG") {
+        //     if (selection.checked) {
+        //         if (model.graph.vertices[0].rectangle == null) {
+        //             computeRD();
+        //         }
+        //         view.showLayer("rectangularDualLayer");
+        //         document.getElementById("showREL").checked = true;
+        //         document.getElementById("showLayerRD").checked = true;
+
+        //         view.hideLayer("edgeLayer");
+        //         view.hideLayer("vertexLayer");
+        //         view.hideLayer("highlightLayer");
+
+        //         view.showLayer("rectangularDualGraphELayer");
+        //         view.showLayer("rectangularDualGraphVLayer");
+        //         document.getElementById("showLayerGraph").checked = false;
+        //     } else {
+        //         // hide RD graph
+        //         view.hideLayer("rectangularDualGraphELayer");
+        //         view.hideLayer("rectangularDualGraphVLayer");
+        //         // show normal graph
+        //         view.showLayer("edgeLayer");
+        //         view.showLayer("vertexLayer");
+        //         view.showLayer("highlightLayer");
+        //         document.getElementById("showLayerGraph").checked = true;
+        //     }
+        // }
     }
 }
 

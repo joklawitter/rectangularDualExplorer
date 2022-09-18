@@ -2,12 +2,13 @@
     --vertexSize: 4;
     --edgeWidth: 1;
     --highlightDifference: 3;
-    --highlightFill: #facc9f;
+    --highlightFill: #FF7F00;
     --redStroke: #E31A1C;
     --blueStroke: #1F78B4;
     --greenStroke: #29A02C;
     --flipCircleFillCW: #FF7F00;
     --flipCircleFillCCW: #29A02C;
+    --highlightCCW: #29A02C;
 }
 
 .edge {
@@ -31,6 +32,11 @@
     fill: rgba(255, 166, 0, 0.712);
 }
 
+.highlightCCW {
+    stroke: #29A02C;
+    fill: #7ec680;
+}
+
 .highlightError {
     stroke: rgb(252, 135, 81);
     fill: rgb(253, 173, 135);
@@ -52,4 +58,8 @@
 
 .red {
     fill: var(--redStroke);
+}
+
+.fillOpacity {
+    fill-opacity: 0.5;
 }

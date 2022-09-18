@@ -7,6 +7,102 @@ import * as algorithms from "./algorithms.js";
 
 const splittingOffset = 15;
 
+export let morphEx1Handler = {
+    async handleEvent(event) {
+        await controller.loadExampleHandler.handleEvent({
+            'target': {
+                'id': "ex1"
+            }
+        })
+
+        view.setSteps(60);
+
+        await algorithms.computeREL(model.graph);
+        await algorithms.computeRectangularDual(model.graph);
+        await view.drawRD(model.graph);
+        document.getElementById("showLayerRD").checked = true;
+        document.getElementById("showREL").checked = true;
+        document.getElementById("showMorphs").checked = true;
+
+        let flipCycles = model.graph.flipCycles;
+        if ((flipCycles === null) || (flipCycles === undefined)) {
+            flipCycles = await algorithms.findFlipCycles(model.graph);
+            model.graph.flipCycles = flipCycles;
+        }
+
+        controller.showFlipCyclesHandler.handleEvent({
+            'currentTarget': {
+                'id': "allFlipsLabel"
+            }
+        });
+    }
+}
+
+export let morphEx2Handler = {
+    async handleEvent(event) {
+        await controller.loadExampleHandler.handleEvent({
+            'target': {
+                'id': "ex2"
+            }
+        })
+
+        view.setSteps(60);
+
+        await algorithms.computeREL(model.graph);
+        await algorithms.computeRectangularDual(model.graph);
+        await view.drawRD(model.graph);
+        document.getElementById("showLayerRD").checked = true;
+        document.getElementById("showREL").checked = true;
+        document.getElementById("showMorphs").checked = true;
+
+        let flipCycles = model.graph.flipCycles;
+        if ((flipCycles === null) || (flipCycles === undefined)) {
+            flipCycles = await algorithms.findFlipCycles(model.graph);
+            model.graph.flipCycles = flipCycles;
+        }
+
+        controller.showFlipCyclesHandler.handleEvent({
+            'currentTarget': {
+                'id': "allFlipsLabel"
+            }
+        });
+    }
+}
+
+export let morphEx3Handler = {
+    async handleEvent(event) {
+        await controller.loadExampleHandler.handleEvent({
+            'target': {
+                'id': "ex3"
+            }
+        })
+
+        view.setSteps(34);
+
+        await algorithms.computeREL(model.graph);
+        await algorithms.computeRectangularDual(model.graph);
+        await view.drawRD(model.graph);
+        document.getElementById("showLayerRD").checked = true;
+        document.getElementById("showREL").checked = true;
+        document.getElementById("showMorphs").checked = true;
+
+        let flipCycles = model.graph.flipCycles;
+        if ((flipCycles === null) || (flipCycles === undefined)) {
+            flipCycles = await algorithms.findFlipCycles(model.graph);
+            model.graph.flipCycles = flipCycles;
+        }
+
+        let someFlipCycle = flipCycles[0];
+        let highlight = true
+        animateRotation(someFlipCycle, 2000, 6000, highlight);
+        // controller.showFlipCyclesHandler.handleEvent({
+        //     'currentTarget': {
+        //         'id': "allFlipsLabel"
+        //     }
+        // });
+    }
+}
+
 export let morphSomethingHandler = {
     async handleEvent(event) {
         await controller.loadExampleHandler.handleEvent({
@@ -15,11 +111,14 @@ export let morphSomethingHandler = {
             }
         })
 
-        view.setSteps(21);
+        view.setSteps(20);
 
         await algorithms.computeREL(model.graph);
         await algorithms.computeRectangularDual(model.graph);
         await view.drawRD(model.graph);
+        document.getElementById("showLayerRD").checked = true;
+        document.getElementById("showREL").checked = true;
+        document.getElementById("showMorphs").checked = true;
 
         let flipCycles = model.graph.flipCycles;
         if ((flipCycles === null) || (flipCycles === undefined)) {
@@ -57,17 +156,23 @@ export async function animateRotation(fourCycle, delay, duration, highlight = fa
     console.log("i.a) compute R_1* and its almost rectangular dual");
     let graphR1 = await model.copyGraph(model.graph);
     let graphR1Split = await computeR1Helper(graphR1, fourCycle);
-    // showIntermediateGraphAndRD(graphR1Split)
+    if (fourCycle.orientation === model.orientations.CW) {
+        // showIntermediateGraphAndRD(graphR1Split)
+        // return;
+    }
 
     // compute R_1 (rectangular dual, where four cycle has space to rotate)
-    console.log("i.b) compute R_1 and its rectangular dual");
+    // console.log("i.b) compute R_1 and its rectangular dual");
     await setRectangleSizesInR1(graphR1);
+    // showIntermediateGraphAndRD(graphR1);
 
     // compute R_2 (rectangular dual after rotation)
     console.log("i.c) compute R_2");
     let copyName = "copyR2";
     let graphR2 = await model.copyGraph(model.graph, copyName);
     await computeR2(graphR2, graphR1, fourCycle, copyName, interiorVertices, fourCycle.isEmpty());
+    // showIntermediateGraphAndRD(graphR2);
+    // return;
 
     // compute R' (rectangular dual that is compressed)
     console.log("i.d) compute R'");
@@ -121,12 +226,14 @@ function transitionOneEnded(fourCycle, interiorVertices) {
                 vertex.polygon.classList.remove("hidden");
             }
         } else if (fourCycle.emptyType === model.flipCycleType.EMPTY_H2V) {
-            if ((vertex === fourCycle.u) || (vertex === fourCycle.w)) {
+            if (((fourCycle.orientation === model.orientations.CW) && ((vertex === fourCycle.u) || (vertex === fourCycle.w)))
+                || ((fourCycle.orientation === model.orientations.CCW) && ((vertex === fourCycle.v) || (vertex === fourCycle.x)))) {
                 vertex.svgRect.classList.add("hidden");
                 vertex.polygon.classList.remove("hidden");
             }
         } else if (fourCycle.emptyType === model.flipCycleType.EMPTY_V2H) {
-            if ((vertex === fourCycle.v) || (vertex === fourCycle.x)) {
+            if (((fourCycle.orientation === model.orientations.CW) && ((vertex === fourCycle.v) || (vertex === fourCycle.x))
+                || ((fourCycle.orientation === model.orientations.CCW) && ((vertex === fourCycle.u) || (vertex === fourCycle.w))))) {
                 vertex.svgRect.classList.add("hidden");
                 vertex.polygon.classList.remove("hidden");
             }
@@ -146,315 +253,625 @@ async function animateR1toR2(t, fourCycle, interiorVertices, copyName) {
         let yTopStart = view.OFFSET + vertex.copy.rectangle.y1 * view.Y_STEP;
         let yTopEnd = view.OFFSET + vertex[copyName].rectangle.y1 * view.Y_STEP;
 
-        // TODO check if also works for CCW rotation
-        if (!fourCycle.isEmpty()) {
-            if (vertex === fourCycle.u) {
-                let polygon = await getPolygon(vertex, highlight);
-                let xDiff = xRightStart - xRightEnd;
-                let yDiff = yTopStart - yTopEnd;
+        if (fourCycle.orientation === model.orientations.CW) {
+            // - CW - CW - CW - CW - CW - CW - CW - CW - CW - CW -
+            if (!fourCycle.isEmpty()) {
+                if (vertex === fourCycle.u) {
+                    let polygon = await getPolygon(vertex, highlight, fourCycle);
+                    let xDiff = xRightStart - xRightEnd;
+                    let yDiff = yTopStart - yTopEnd;
 
-                let dStart = "M" + xLeftStart + "," + yBottomStart + " ";
-                let dEnd = " z";
-                let d = dStart + xLeftStart + "," + yTopStart + " "
-                    + xRightEnd + "," + yTopStart + " "
-                    + xRightStart + "," + yTopStart + " "
-                    + xRightStart + "," + yBottomStart + dEnd;
-                polygon.setAttribute("d", d);
+                    let dStart = "M" + xLeftStart + "," + yBottomStart + " ";
+                    let dEnd = " z";
+                    let d = dStart + xLeftStart + "," + yTopStart + " "
+                        + xRightEnd + "," + yTopStart + " "
+                        + xRightStart + "," + yTopStart + " "
+                        + xRightStart + "," + yBottomStart + dEnd;
+                    polygon.setAttribute("d", d);
 
-                d3.select("#" + polygon.id)
-                    .each(() => { transitioningTwo++ })
-                    .transition(t)
-                    .attrTween('d', function () {
-                        return function (t) {
-                            let xIntermediate = xRightStart - t * xDiff;
-                            let yIntermediate = yTopStart - t * yDiff;
-                            return dStart + xLeftStart + "," + yIntermediate + " "
-                                + xRightEnd + "," + yIntermediate + " "
-                                + xIntermediate + "," + yTopStart + " "
-                                + xIntermediate + "," + yBottomStart + dEnd;
-                        };
-                    })
-                    .on('end', () => {
-                        transitioningTwo--;
-                        if (transitioningTwo === 0) {
-                            transitionTwoEnded(fourCycle, interiorVertices);
-                        }
-                    })
-                    .remove();
-            } else if (vertex === fourCycle.v) {
-                let polygon = await getPolygon(vertex, highlight);
-                let xDiff = xRightStart - xRightEnd;
-                let yDiff = yBottomStart - yBottomEnd;
+                    d3.select("#" + polygon.id)
+                        .each(() => { transitioningTwo++ })
+                        .transition(t)
+                        .attrTween('d', function () {
+                            return function (t) {
+                                let xIntermediate = xRightStart - t * xDiff;
+                                let yIntermediate = yTopStart - t * yDiff;
+                                return dStart + xLeftStart + "," + yIntermediate + " "
+                                    + xRightEnd + "," + yIntermediate + " "
+                                    + xIntermediate + "," + yTopStart + " "
+                                    + xIntermediate + "," + yBottomStart + dEnd;
+                            };
+                        })
+                        .on('end', () => {
+                            transitioningTwo--;
+                            if (transitioningTwo === 0) {
+                                transitionTwoEnded(fourCycle, interiorVertices);
+                            }
+                        })
+                        .remove();
+                } else if (vertex === fourCycle.v) {
+                    let polygon = await getPolygon(vertex, highlight, fourCycle);
+                    let xDiff = xRightStart - xRightEnd;
+                    let yDiff = yBottomStart - yBottomEnd;
 
-                let dStart = "M" + xLeftStart + "," + yTopStart + " ";
-                let dEnd = " z";
-                let d = dStart + xRightStart + "," + yTopStart + " "
-                    + xRightStart + "," + yBottomEnd + " "
-                    + xRightStart + "," + yBottomStart + " "
-                    + xLeftStart + "," + yBottomStart + dEnd;
-                polygon.setAttribute("d", d);
+                    let dStart = "M" + xLeftStart + "," + yTopStart + " ";
+                    let dEnd = " z";
+                    let d = dStart + xRightStart + "," + yTopStart + " "
+                        + xRightStart + "," + yBottomEnd + " "
+                        + xRightStart + "," + yBottomStart + " "
+                        + xLeftStart + "," + yBottomStart + dEnd;
+                    polygon.setAttribute("d", d);
 
-                d3.select("#" + polygon.id)
-                    .each(() => { transitioningTwo++ })
-                    .transition(t)
-                    .attrTween('d', function () {
-                        return function (t) {
-                            let xIntermediate = xRightStart - t * xDiff;
-                            let yIntermediate = yBottomStart - t * yDiff;
-                            return dStart + xIntermediate + "," + yTopStart + " "
-                                + xIntermediate + "," + yBottomEnd + " "
-                                + xRightStart + "," + yIntermediate + " "
-                                + xLeftStart + "," + yIntermediate + dEnd;
-                        };
-                    })
-                    .on('end', () => {
-                        transitioningTwo--;
-                        if (transitioningTwo === 0) {
-                            transitionTwoEnded(fourCycle, interiorVertices);
-                        }
-                    })
-                    .remove();
-            } else if (vertex === fourCycle.w) {
-                let polygon = await getPolygon(vertex, highlight);
-                let xDiff = xLeftStart - xLeftEnd;
-                let yDiff = yBottomStart - yBottomEnd;
+                    d3.select("#" + polygon.id)
+                        .each(() => { transitioningTwo++ })
+                        .transition(t)
+                        .attrTween('d', function () {
+                            return function (t) {
+                                let xIntermediate = xRightStart - t * xDiff;
+                                let yIntermediate = yBottomStart - t * yDiff;
+                                return dStart + xIntermediate + "," + yTopStart + " "
+                                    + xIntermediate + "," + yBottomEnd + " "
+                                    + xRightStart + "," + yIntermediate + " "
+                                    + xLeftStart + "," + yIntermediate + dEnd;
+                            };
+                        })
+                        .on('end', () => {
+                            transitioningTwo--;
+                            if (transitioningTwo === 0) {
+                                transitionTwoEnded(fourCycle, interiorVertices);
+                            }
+                        })
+                        .remove();
+                } else if (vertex === fourCycle.w) {
+                    let polygon = await getPolygon(vertex, highlight, fourCycle);
+                    let xDiff = xLeftStart - xLeftEnd;
+                    let yDiff = yBottomStart - yBottomEnd;
 
-                let dStart = "M" + xRightStart + "," + yTopStart + " ";
-                let dEnd = " z";
-                let d = dStart + xRightStart + "," + yBottomStart + " "
-                    + xLeftEnd + "," + yBottomStart + " "
-                    + xLeftStart + "," + yBottomStart + " "
-                    + xLeftStart + "," + yTopStart + dEnd;
-                polygon.setAttribute("d", d);
+                    let dStart = "M" + xRightStart + "," + yTopStart + " ";
+                    let dEnd = " z";
+                    let d = dStart + xRightStart + "," + yBottomStart + " "
+                        + xLeftEnd + "," + yBottomStart + " "
+                        + xLeftStart + "," + yBottomStart + " "
+                        + xLeftStart + "," + yTopStart + dEnd;
+                    polygon.setAttribute("d", d);
 
-                d3.select("#" + polygon.id)
-                    .each(() => { transitioningTwo++ })
-                    .transition(t)
-                    .attrTween('d', function () {
-                        return function (t) {
-                            let xIntermediate = xLeftStart - t * xDiff;
-                            let yIntermediate = yBottomStart - t * yDiff;
-                            return dStart + xRightStart + "," + yIntermediate + " "
-                                + xLeftEnd + "," + yIntermediate + " "
-                                + xIntermediate + "," + yBottomStart + " "
-                                + xIntermediate + "," + yTopStart + dEnd;
-                        };
-                    })
-                    .on('end', () => {
-                        transitioningTwo--;
-                        if (transitioningTwo === 0) {
-                            transitionTwoEnded(fourCycle, interiorVertices);
-                        }
-                    })
-                    .remove();
-            } else if (vertex === fourCycle.x) {
-                let polygon = await getPolygon(vertex, highlight);
-                let xDiff = xLeftStart - xLeftEnd;
-                let yDiff = yTopStart - yTopEnd;
+                    d3.select("#" + polygon.id)
+                        .each(() => { transitioningTwo++ })
+                        .transition(t)
+                        .attrTween('d', function () {
+                            return function (t) {
+                                let xIntermediate = xLeftStart - t * xDiff;
+                                let yIntermediate = yBottomStart - t * yDiff;
+                                return dStart + xRightStart + "," + yIntermediate + " "
+                                    + xLeftEnd + "," + yIntermediate + " "
+                                    + xIntermediate + "," + yBottomStart + " "
+                                    + xIntermediate + "," + yTopStart + dEnd;
+                            };
+                        })
+                        .on('end', () => {
+                            transitioningTwo--;
+                            if (transitioningTwo === 0) {
+                                transitionTwoEnded(fourCycle, interiorVertices);
+                            }
+                        })
+                        .remove();
+                } else if (vertex === fourCycle.x) {
+                    let polygon = await getPolygon(vertex, highlight, fourCycle);
+                    let xDiff = xLeftStart - xLeftEnd;
+                    let yDiff = yTopStart - yTopEnd;
 
-                let dStart = "M" + xRightStart + "," + yBottomStart + " ";
-                let dEnd = " z";
-                let d = dStart + xLeftStart + "," + yBottomStart + " "
-                    + xLeftStart + "," + yTopEnd + " "
-                    + xLeftStart + "," + yTopStart + " "
-                    + xRightStart + "," + yTopStart + dEnd;
-                polygon.setAttribute("d", d);
+                    let dStart = "M" + xRightStart + "," + yBottomStart + " ";
+                    let dEnd = " z";
+                    let d = dStart + xLeftStart + "," + yBottomStart + " "
+                        + xLeftStart + "," + yTopEnd + " "
+                        + xLeftStart + "," + yTopStart + " "
+                        + xRightStart + "," + yTopStart + dEnd;
+                    polygon.setAttribute("d", d);
 
-                d3.select("#" + polygon.id)
-                    .each(() => { transitioningTwo++ })
-                    .transition(t)
-                    .attrTween('d', function () {
-                        return function (t) {
-                            let xIntermediate = xLeftStart - t * xDiff;
-                            let yIntermediate = yTopStart - t * yDiff;
-                            return dStart + xIntermediate + "," + yBottomStart + " "
-                                + xIntermediate + "," + yTopEnd + " "
-                                + xLeftStart + "," + yIntermediate + " "
-                                + xRightStart + "," + yIntermediate + dEnd;
-                        };
-                    })
-                    .on('end', () => {
-                        transitioningTwo--;
-                        if (transitioningTwo === 0) {
-                            transitionTwoEnded(fourCycle, interiorVertices);
-                        }
-                    })
-                    .remove();
-            } else if (interiorVertices.includes(vertex)) {
-                let polygon = await getPolygon(vertex);
-                let dStart = "M";
-                let dEnd = " z";
-                let d = dStart + xLeftStart + "," + yTopStart + " "
-                    + xRightStart + "," + yTopStart + " "
-                    + xRightStart + "," + yBottomStart + " "
-                    + xLeftStart + "," + yBottomStart + dEnd;
-                polygon.setAttribute("d", d);
+                    d3.select("#" + polygon.id)
+                        .each(() => { transitioningTwo++ })
+                        .transition(t)
+                        .attrTween('d', function () {
+                            return function (t) {
+                                let xIntermediate = xLeftStart - t * xDiff;
+                                let yIntermediate = yTopStart - t * yDiff;
+                                return dStart + xIntermediate + "," + yBottomStart + " "
+                                    + xIntermediate + "," + yTopEnd + " "
+                                    + xLeftStart + "," + yIntermediate + " "
+                                    + xRightStart + "," + yIntermediate + dEnd;
+                            };
+                        })
+                        .on('end', () => {
+                            transitioningTwo--;
+                            if (transitioningTwo === 0) {
+                                transitionTwoEnded(fourCycle, interiorVertices);
+                            }
+                        })
+                        .remove();
+                } else if (interiorVertices.includes(vertex)) {
+                    let polygon = await getPolygon(vertex);
+                    let dStart = "M";
+                    let dEnd = " z";
+                    let d = dStart + xLeftStart + "," + yTopStart + " "
+                        + xRightStart + "," + yTopStart + " "
+                        + xRightStart + "," + yBottomStart + " "
+                        + xLeftStart + "," + yBottomStart + dEnd;
+                    polygon.setAttribute("d", d);
 
-                d3.select("#" + polygon.id)
-                    .each(() => { transitioningTwo++ })
-                    .transition(t)
-                    .attrTween('d', function () {
-                        return function (t) {
-                            let intermediateOneX = xLeftStart - t * (xLeftStart - xRightEnd);
-                            let intermediateOneY = yTopStart - t * (yTopStart - yTopEnd);
-                            let intermediateTwoX = xRightStart - t * (xRightStart - xRightEnd);
-                            let intermediateTwoY = yTopStart - t * (yTopStart - yBottomEnd);
-                            let intermediateThreeX = xRightStart - t * (xRightStart - xLeftEnd);
-                            let intermediateThreeY = yBottomStart - t * (yBottomStart - yBottomEnd);
-                            let intermediateFourX = xLeftStart - t * (xLeftStart - xLeftEnd);
-                            let intermediateFourY = yBottomStart - t * (yBottomStart - yTopEnd);
-                            return dStart + intermediateOneX + "," + intermediateOneY + " "
-                                + intermediateTwoX + "," + intermediateTwoY + " "
-                                + intermediateThreeX + "," + intermediateThreeY + " "
-                                + intermediateFourX + "," + intermediateFourY + dEnd;
-                        };
-                    })
-                    .on('end', () => {
-                        transitioningTwo--;
-                        if (transitioningTwo === 0) {
-                            transitionTwoEnded(fourCycle, interiorVertices);
-                        }
-                    })
-                    .remove();
+                    d3.select("#" + polygon.id)
+                        .each(() => { transitioningTwo++ })
+                        .transition(t)
+                        .attrTween('d', function () {
+                            return function (t) {
+                                let intermediateOneX = xLeftStart - t * (xLeftStart - xRightEnd);
+                                let intermediateOneY = yTopStart - t * (yTopStart - yTopEnd);
+                                let intermediateTwoX = xRightStart - t * (xRightStart - xRightEnd);
+                                let intermediateTwoY = yTopStart - t * (yTopStart - yBottomEnd);
+                                let intermediateThreeX = xRightStart - t * (xRightStart - xLeftEnd);
+                                let intermediateThreeY = yBottomStart - t * (yBottomStart - yBottomEnd);
+                                let intermediateFourX = xLeftStart - t * (xLeftStart - xLeftEnd);
+                                let intermediateFourY = yBottomStart - t * (yBottomStart - yTopEnd);
+                                return dStart + intermediateOneX + "," + intermediateOneY + " "
+                                    + intermediateTwoX + "," + intermediateTwoY + " "
+                                    + intermediateThreeX + "," + intermediateThreeY + " "
+                                    + intermediateFourX + "," + intermediateFourY + dEnd;
+                            };
+                        })
+                        .on('end', () => {
+                            transitioningTwo--;
+                            if (transitioningTwo === 0) {
+                                transitionTwoEnded(fourCycle, interiorVertices);
+                            }
+                        })
+                        .remove();
+                }
+            } else if (fourCycle.emptyType === model.flipCycleType.EMPTY_H2V) {
+                // - EMPTY - EMPTY - EMPTY - EMPTY - EMPTY -
+                console.log("h2v move u and w");
+                if (vertex === fourCycle.u) {
+                    let polygon = await getPolygon(vertex, highlight, fourCycle);
+                    let xDiff = xRightStart - xRightEnd;
+                    let dStart = "M" + xLeftStart + "," + yBottomStart + " ";
+                    let dEnd = " z";
+                    let d = dStart + xLeftStart + "," + yTopStart + " "
+                        + xRightEnd + "," + yTopStart + " "
+                        + xRightStart + "," + yTopStart + " "
+                        + xRightStart + "," + yBottomStart + dEnd;
+                    polygon.setAttribute("d", d);
+
+                    d3.select("#" + polygon.id)
+                        .each(() => { transitioningTwo++ })
+                        .transition(t)
+                        .attrTween('d', function () {
+                            return function (t) {
+                                let xIntermediate = xRightStart - t * xDiff;
+                                let yIntermediate = yTopStart + t * view.Y_STEP;
+                                return dStart + xLeftStart + "," + yTopStart + " "
+                                    + xRightEnd + "," + yTopStart + " "
+                                    + xIntermediate + "," + yIntermediate + " "
+                                    + xIntermediate + "," + yBottomStart + dEnd;
+                            };
+                        })
+                        .on('end', () => {
+                            transitioningTwo--;
+                            if (transitioningTwo === 0) {
+                                transitionTwoEnded(fourCycle, interiorVertices);
+                            }
+                        })
+                        .remove();
+                } else if (vertex === fourCycle.w) {
+                    let polygon = await getPolygon(vertex, highlight, fourCycle);
+                    let yDiff = yBottomStart - yBottomEnd;
+                    let xMiddle = view.OFFSET + fourCycle.u.copy.rectangle.x2 * view.X_STEP;
+                    let xDiff = xLeftStart - xMiddle;
+
+                    let dStart = "M" + xRightStart + "," + yTopStart + " ";
+                    let dEnd = " z";
+                    let d = dStart + xRightStart + "," + yBottomStart + " "
+                        + xMiddle + "," + yBottomStart + " "
+                        + xLeftStart + "," + yBottomStart + " "
+                        + xLeftStart + "," + yTopStart + dEnd;
+                    polygon.setAttribute("d", d);
+
+                    d3.select("#" + polygon.id)
+                        .each(() => { transitioningTwo++ })
+                        .transition(t)
+                        .attrTween('d', function () {
+                            return function (t) {
+                                let yIntermediate = yBottomStart - t * yDiff;
+                                let xIntermediate = xMiddle + t * xDiff;
+                                return dStart + xRightStart + "," + yIntermediate + " "
+                                    + xIntermediate + "," + yIntermediate + " "
+                                    + xLeftEnd + "," + yBottomStart + " "
+                                    + xLeftEnd + "," + yTopStart + dEnd;
+                            };
+                        })
+                        .on('end', () => {
+                            transitioningTwo--;
+                            if (transitioningTwo === 0) {
+                                transitionTwoEnded(fourCycle, interiorVertices);
+                            }
+                        })
+                        .remove();
+                }
+            } else if (fourCycle.emptyType === model.flipCycleType.EMPTY_V2H) {
+                console.log("v2h move v and x");
+                // - EMPTY - EMPTY - EMPTY - EMPTY - EMPTY -
+                if (vertex === fourCycle.v) {
+                    let polygon = await getPolygon(vertex, highlight, fourCycle);
+                    let xDiff = xRightStart - xRightEnd;
+                    let yMiddle = view.OFFSET + fourCycle.w.copy.rectangle.y2 * view.X_STEP;
+                    let yDiff = yMiddle - yBottomStart;
+
+                    let dStart = "M" + xLeftStart + "," + yTopStart + " ";
+                    let dEnd = " z";
+                    let d = dStart + xRightStart + "," + yTopStart + " "
+                        + xRightStart + "," + yMiddle + " "
+                        + xRightStart + "," + yBottomStart + " "
+                        + xLeftStart + "," + yBottomStart + dEnd;
+                    polygon.setAttribute("d", d);
+
+                    d3.select("#" + polygon.id)
+                        .each(() => { transitioningTwo++ })
+                        .transition(t)
+                        .attrTween('d', function () {
+                            return function (t) {
+                                let xIntermediate = xRightStart - t * xDiff;
+                                let yIntermediate = yMiddle - t * yDiff;
+                                return dStart + xIntermediate + "," + yTopStart + " "
+                                    + xIntermediate + "," + yIntermediate + " "
+                                    + xRightStart + "," + yBottomStart + " "
+                                    + xLeftStart + "," + yBottomStart + dEnd;
+                            };
+                        })
+                        .on('end', () => {
+                            transitioningTwo--;
+                            if (transitioningTwo === 0) {
+                                transitionTwoEnded(fourCycle, interiorVertices);
+                            }
+                        })
+                        .remove();
+                } else if (vertex === fourCycle.x) {
+                    let polygon = await getPolygon(vertex, highlight, fourCycle);
+                    let yDiff = yTopStart - yTopEnd;
+
+                    let dStart = "M" + xRightStart + "," + yBottomStart + " ";
+                    let dEnd = " z";
+                    let d = dStart + xLeftStart + "," + yBottomStart + " "
+                        + xLeftStart + "," + yTopEnd + " "
+                        + xLeftStart + "," + yTopStart + " "
+                        + xRightStart + "," + yTopStart + dEnd;
+                    polygon.setAttribute("d", d);
+
+                    d3.select("#" + polygon.id)
+                        .each(() => { transitioningTwo++ })
+                        .transition(t)
+                        .attrTween('d', function () {
+                            return function (t) {
+                                let xIntermediate = xLeftStart + t * view.Y_STEP;
+                                let yIntermediate = yTopStart - t * yDiff;
+                                return dStart + xLeftStart + "," + yBottomStart + " "
+                                    + xLeftStart + "," + yTopEnd + " "
+                                    + xIntermediate + "," + yIntermediate + " "
+                                    + xRightStart + "," + yIntermediate + dEnd;
+                            };
+                        })
+                        .on('end', () => {
+                            transitioningTwo--;
+                            if (transitioningTwo === 0) {
+                                transitionTwoEnded(fourCycle, interiorVertices);
+                            }
+                        })
+                        .remove();
+                }
             }
-        } else if (fourCycle.emptyType === model.flipCycleType.EMPTY_H2V) {
-            // - EMPTY - EMPTY - EMPTY - EMPTY - EMPTY -
-            console.log("h2v move u and w");
-            if (vertex === fourCycle.u) {
-                let polygon = await getPolygon(vertex, highlight);
-                let xDiff = xRightStart - xRightEnd;
-                let dStart = "M" + xLeftStart + "," + yBottomStart + " ";
-                let dEnd = " z";
-                let d = dStart + xLeftStart + "," + yTopStart + " "
-                    + xRightEnd + "," + yTopStart + " "
-                    + xRightStart + "," + yTopStart + " "
-                    + xRightStart + "," + yBottomStart + dEnd;
-                polygon.setAttribute("d", d);
+        } else {
+            // - CCW - CCW - CCW - CCW - CCW - CCW - CCW - CCW - CCW - CCW -
+            if (!fourCycle.isEmpty()) {
+                if (vertex === fourCycle.u) {
+                    let polygon = await getPolygon(vertex, highlight, fourCycle);
+                    let xDiff = xRightStart - xRightEnd;
+                    let yDiff = yTopStart - yTopEnd;
 
-                d3.select("#" + polygon.id)
-                    .each(() => { transitioningTwo++ })
-                    .transition(t)
-                    .attrTween('d', function () {
-                        return function (t) {
-                            let xIntermediate = xRightStart - t * xDiff;
-                            let yIntermediate = yTopStart + t * view.Y_STEP;
-                            return dStart + xLeftStart + "," + yTopStart + " "
-                                + xRightEnd + "," + yTopStart + " "
-                                + xIntermediate + "," + yIntermediate + " "
-                                + xIntermediate + "," + yBottomStart + dEnd;
-                        };
-                    })
-                    .on('end', () => {
-                        transitioningTwo--;
-                        if (transitioningTwo === 0) {
-                            transitionTwoEnded(fourCycle, interiorVertices);
-                        }
-                    })
-                    .remove();
-            } else if (vertex === fourCycle.w) {
-                let polygon = await getPolygon(vertex, highlight);
-                let yDiff = yBottomStart - yBottomEnd;
-                let xMiddle = view.OFFSET + fourCycle.u.copy.rectangle.x2 * view.X_STEP;
-                let xDiff = xLeftStart - xMiddle;
+                    let dStart = "M" + xLeftStart + "," + yBottomStart + " ";
+                    let dEnd = " z";
+                    let d = dStart + xLeftStart + "," + yTopStart + " "
+                        + xRightStart + "," + yTopStart + " "
+                        + xRightEnd + "," + yTopEnd + " "
+                        + xRightStart + "," + yBottomStart + dEnd;
+                    polygon.setAttribute("d", d);
 
-                let dStart = "M" + xRightStart + "," + yTopStart + " ";
-                let dEnd = " z";
-                let d = dStart + xRightStart + "," + yBottomStart + " "
-                    + xMiddle + "," + yBottomStart + " "
-                    + xLeftStart + "," + yBottomStart + " "
-                    + xLeftStart + "," + yTopStart + dEnd;
-                polygon.setAttribute("d", d);
+                    d3.select("#" + polygon.id)
+                        .each(() => { transitioningTwo++ })
+                        .transition(t)
+                        .attrTween('d', function () {
+                            return function (t) {
+                                let xIntermediate = xRightStart - t * xDiff;
+                                let yIntermediate = yTopStart - t * yDiff;
+                                return dStart + xLeftStart + "," + yIntermediate + " "
+                                    + xRightStart + "," + yIntermediate + " "
+                                    + xIntermediate + "," + yTopEnd + " "
+                                    + xIntermediate + "," + yBottomStart + dEnd;
+                            };
+                        })
+                        .on('end', () => {
+                            transitioningTwo--;
+                            if (transitioningTwo === 0) {
+                                transitionTwoEnded(fourCycle, interiorVertices);
+                            }
+                        })
+                        .remove();
+                } else if (vertex === fourCycle.v) {
+                    let polygon = await getPolygon(vertex, highlight, fourCycle);
+                    let xDiff = xRightStart - xRightEnd;
+                    let yDiff = yBottomStart - yBottomEnd;
 
-                d3.select("#" + polygon.id)
-                    .each(() => { transitioningTwo++ })
-                    .transition(t)
-                    .attrTween('d', function () {
-                        return function (t) {
-                            let yIntermediate = yBottomStart - t * yDiff;
-                            let xIntermediate = xMiddle + t * xDiff;
-                            return dStart + xRightStart + "," + yIntermediate + " "
-                                + xIntermediate + "," + yIntermediate + " "
-                                + xLeftEnd + "," + yBottomStart + " "
-                                + xLeftEnd + "," + yTopStart + dEnd;
-                        };
-                    })
-                    .on('end', () => {
-                        transitioningTwo--;
-                        if (transitioningTwo === 0) {
-                            transitionTwoEnded(fourCycle, interiorVertices);
-                        }
-                    })
-                    .remove();
-            }
-        } else if (fourCycle.emptyType === model.flipCycleType.EMPTY_V2H) {
-            console.log("h2v move v and x");
-            // - EMPTY - EMPTY - EMPTY - EMPTY - EMPTY -
-            if (vertex === fourCycle.v) {
-                let polygon = await getPolygon(vertex, highlight);
-                let xDiff = xRightStart - xRightEnd;
-                let yMiddle = view.OFFSET + fourCycle.w.copy.rectangle.y2 * view.X_STEP;
-                let yDiff = yMiddle - yBottomStart;
+                    let dStart = "M" + xLeftStart + "," + yTopStart + " ";
+                    let dEnd = " z";
+                    let d = dStart + xRightStart + "," + yTopStart + " "
+                        + xRightStart + "," + yBottomStart + " "
+                        + xRightEnd + "," + yBottomStart + " "
+                        + xLeftStart + "," + yBottomStart + dEnd;
+                    polygon.setAttribute("d", d);
 
-                let dStart = "M" + xLeftStart + "," + yTopStart + " ";
-                let dEnd = " z";
-                let d = dStart + xRightStart + "," + yTopStart + " "
-                    + xRightStart + "," + yMiddle + " "
-                    + xRightStart + "," + yBottomStart + " "
-                    + xLeftStart + "," + yBottomStart + dEnd;
-                polygon.setAttribute("d", d);
+                    d3.select("#" + polygon.id)
+                        .each(() => { transitioningTwo++ })
+                        .transition(t)
+                        .attrTween('d', function () {
+                            return function (t) {
+                                let xIntermediate = xRightStart - t * xDiff;
+                                let yIntermediate = yBottomStart - t * yDiff;
+                                return dStart + xIntermediate + "," + yTopStart + " "
+                                    + xIntermediate + "," + yBottomStart + " "
+                                    + xRightEnd + "," + yIntermediate + " "
+                                    + xLeftStart + "," + yIntermediate + dEnd;
+                            };
+                        })
+                        .on('end', () => {
+                            transitioningTwo--;
+                            if (transitioningTwo === 0) {
+                                transitionTwoEnded(fourCycle, interiorVertices);
+                            }
+                        })
+                        .remove();
+                } else if (vertex === fourCycle.w) {
+                    let polygon = await getPolygon(vertex, highlight, fourCycle);
+                    let xDiff = xLeftStart - xLeftEnd;
+                    let yDiff = yBottomStart - yBottomEnd;
 
-                d3.select("#" + polygon.id)
-                    .each(() => { transitioningTwo++ })
-                    .transition(t)
-                    .attrTween('d', function () {
-                        return function (t) {
-                            let xIntermediate = xRightStart - t * xDiff;
-                            let yIntermediate = yMiddle - t * yDiff;
-                            return dStart + xIntermediate + "," + yTopStart + " "
-                                + xIntermediate + "," + yIntermediate + " "
-                                + xRightStart + "," + yBottomStart + " "
-                                + xLeftStart + "," + yBottomStart + dEnd;
-                        };
-                    })
-                    .on('end', () => {
-                        transitioningTwo--;
-                        if (transitioningTwo === 0) {
-                            transitionTwoEnded(fourCycle, interiorVertices);
-                        }
-                    })
-                    .remove();
-            } else if (vertex === fourCycle.x) {
-                let polygon = await getPolygon(vertex, highlight);
-                let yDiff = yTopStart - yTopEnd;
+                    let dStart = "M" + xRightStart + "," + yTopStart + " ";
+                    let dEnd = " z";
+                    let d = dStart + xRightStart + "," + yBottomStart + " "
+                        + xLeftStart + "," + yBottomStart + " "
+                        + xLeftStart + "," + yBottomEnd + " "
+                        + xLeftStart + "," + yTopStart + dEnd;
+                    polygon.setAttribute("d", d);
 
-                let dStart = "M" + xRightStart + "," + yBottomStart + " ";
-                let dEnd = " z";
-                let d = dStart + xLeftStart + "," + yBottomStart + " "
-                    + xLeftStart + "," + yTopEnd + " "
-                    + xLeftStart + "," + yTopStart + " "
-                    + xRightStart + "," + yTopStart + dEnd;
-                polygon.setAttribute("d", d);
+                    d3.select("#" + polygon.id)
+                        .each(() => { transitioningTwo++ })
+                        .transition(t)
+                        .attrTween('d', function () {
+                            return function (t) {
+                                let xIntermediate = xLeftStart - t * xDiff;
+                                let yIntermediate = yBottomStart - t * yDiff;
+                                return dStart + xRightStart + "," + yIntermediate + " "
+                                    + xLeftStart + "," + yIntermediate + " "
+                                    + xIntermediate + "," + yBottomEnd + " "
+                                    + xIntermediate + "," + yTopStart + dEnd;
+                            };
+                        })
+                        .on('end', () => {
+                            transitioningTwo--;
+                            if (transitioningTwo === 0) {
+                                transitionTwoEnded(fourCycle, interiorVertices);
+                            }
+                        })
+                        .remove();
+                } else if (vertex === fourCycle.x) {
+                    let polygon = await getPolygon(vertex, highlight, fourCycle);
+                    let xDiff = xLeftStart - xLeftEnd;
+                    let yDiff = yTopStart - yTopEnd;
 
-                d3.select("#" + polygon.id)
-                    .each(() => { transitioningTwo++ })
-                    .transition(t)
-                    .attrTween('d', function () {
-                        return function (t) {
-                            let xIntermediate = xLeftStart + t * view.Y_STEP;
-                            let yIntermediate = yTopStart - t * yDiff;
-                            return dStart + xLeftStart + "," + yBottomStart + " "
-                                + xLeftStart + "," + yTopEnd + " "
-                                + xIntermediate + "," + yIntermediate + " "
-                                + xRightStart + "," + yIntermediate + dEnd;
-                        };
-                    })
-                    .on('end', () => {
-                        transitioningTwo--;
-                        if (transitioningTwo === 0) {
-                            transitionTwoEnded(fourCycle, interiorVertices);
-                        }
-                    })
-                    .remove();
+                    let dStart = "M" + xRightStart + "," + yBottomStart + " ";
+                    let dEnd = " z";
+                    let d = dStart + xLeftStart + "," + yBottomStart + " "
+                        + xLeftStart + "," + yTopStart + " "
+                        + xLeftEnd + "," + yTopStart + " "
+                        + xRightStart + "," + yTopStart + dEnd;
+                    polygon.setAttribute("d", d);
+
+                    d3.select("#" + polygon.id)
+                        .each(() => { transitioningTwo++ })
+                        .transition(t)
+                        .attrTween('d', function () {
+                            return function (t) {
+                                let xIntermediate = xLeftStart - t * xDiff;
+                                let yIntermediate = yTopStart - t * yDiff;
+                                return dStart + xIntermediate + "," + yBottomStart + " "
+                                    + xIntermediate + "," + yTopStart + " "
+                                    + xLeftEnd + "," + yIntermediate + " "
+                                    + xRightStart + "," + yIntermediate + dEnd;
+                            };
+                        })
+                        .on('end', () => {
+                            transitioningTwo--;
+                            if (transitioningTwo === 0) {
+                                transitionTwoEnded(fourCycle, interiorVertices);
+                            }
+                        })
+                        .remove();
+                } else if (interiorVertices.includes(vertex)) {
+
+                    let polygon = await getPolygon(vertex);
+                    let dStart = "M";
+                    let dEnd = " z";
+                    let d = dStart + xLeftStart + "," + yTopStart + " "
+                        + xRightStart + "," + yTopStart + " "
+                        + xRightStart + "," + yBottomStart + " "
+                        + xLeftStart + "," + yBottomStart + dEnd;
+                    polygon.setAttribute("d", d);
+
+                    d3.select("#" + polygon.id)
+                        .each(() => { transitioningTwo++ })
+                        .transition(t)
+                        .attrTween('d', function () {
+                            return function (t) {
+                                let intermediateOneX = xLeftStart - t * (xLeftStart - xLeftEnd);
+                                let intermediateOneY = yTopStart - t * (yTopStart - yBottomEnd);
+                                let intermediateTwoX = xRightStart - t * (xRightStart - xLeftEnd);
+                                let intermediateTwoY = yTopStart - t * (yTopStart - yTopEnd);
+                                let intermediateThreeX = xRightStart - t * (xRightStart - xRightEnd);
+                                let intermediateThreeY = yBottomStart - t * (yBottomStart - yTopEnd);
+                                let intermediateFourX = xLeftStart - t * (xLeftStart - xRightEnd);
+                                let intermediateFourY = yBottomStart - t * (yBottomStart - yBottomEnd);
+                                return dStart + intermediateOneX + "," + intermediateOneY + " "
+                                    + intermediateTwoX + "," + intermediateTwoY + " "
+                                    + intermediateThreeX + "," + intermediateThreeY + " "
+                                    + intermediateFourX + "," + intermediateFourY + dEnd;
+                            };
+                        })
+                        .on('end', () => {
+                            transitioningTwo--;
+                            if (transitioningTwo === 0) {
+                                transitionTwoEnded(fourCycle, interiorVertices);
+                            }
+                        })
+                        .remove();
+                }
+            } else if (fourCycle.emptyType === model.flipCycleType.EMPTY_V2H) {
+                // - EMPTY - EMPTY - EMPTY - EMPTY - EMPTY -
+                console.log("v2h move u and w");
+                if (vertex === fourCycle.u) {
+                    let polygon = await getPolygon(vertex, highlight, fourCycle);
+                    let yMiddle = view.OFFSET + fourCycle.x.copy.rectangle.y1 * view.X_STEP;
+                    let yDiff = yMiddle - yTopEnd;
+                    let dStart = "M" + xLeftStart + "," + yBottomStart + " "
+                        + xLeftStart + "," + yTopStart + " "
+                        + xRightStart + "," + yTopStart + " ";
+                    let dEnd = " z";
+                    let d = dStart
+                        + xRightStart + "," + yMiddle + " "
+                        + xRightStart + "," + yBottomStart + dEnd;
+                    polygon.setAttribute("d", d);
+
+                    d3.select("#" + polygon.id)
+                        .each(() => { transitioningTwo++ })
+                        .transition(t)
+                        .attrTween('d', function () {
+                            return function (t) {
+                                let xIntermediate = xRightStart + t * view.Y_STEP;
+                                let yIntermediate = yMiddle - t * yDiff;
+                                return dStart +
+                                    + xIntermediate + "," + yIntermediate + " "
+                                    + xIntermediate + "," + yBottomStart + dEnd;
+                            };
+                        })
+                        .on('end', () => {
+                            transitioningTwo--;
+                            if (transitioningTwo === 0) {
+                                transitionTwoEnded(fourCycle, interiorVertices);
+                            }
+                        })
+                        .remove();
+                } else if (vertex === fourCycle.w) {
+                    let polygon = await getPolygon(vertex, highlight, fourCycle);
+                    let yDiff = yBottomStart - yBottomEnd;
+
+                    let dStart = "M" + xRightStart + "," + yTopStart + " ";
+                    let dEnd = xLeftStart + "," + yBottomEnd + " "
+                        + xLeftStart + "," + yTopStart + " z";
+                    let d = dStart + xRightStart + "," + yBottomStart + " "
+                        + xLeftStart + "," + yBottomStart + " "
+                        + dEnd;
+                    polygon.setAttribute("d", d);
+
+                    d3.select("#" + polygon.id)
+                        .each(() => { transitioningTwo++ })
+                        .transition(t)
+                        .attrTween('d', function () {
+                            return function (t) {
+                                let xIntermediate = xLeftStart + t * view.X_STEP;
+                                let yIntermediate = yBottomStart - t * yDiff;
+                                return dStart + xRightStart + "," + yIntermediate + " "
+                                    + xIntermediate + "," + yIntermediate + " " + dEnd;
+                            };
+                        })
+                        .on('end', () => {
+                            transitioningTwo--;
+                            if (transitioningTwo === 0) {
+                                transitionTwoEnded(fourCycle, interiorVertices);
+                            }
+                        })
+                        .remove();
+                }
+            } else if (fourCycle.emptyType === model.flipCycleType.EMPTY_H2V) {
+                console.log("h2v move v and x");
+                // - EMPTY - EMPTY - EMPTY - EMPTY - EMPTY -
+                if (vertex === fourCycle.v) {
+                    let polygon = await getPolygon(vertex, highlight, fourCycle);
+                    let xDiff = xRightStart - xRightEnd;
+                    let xMiddle = view.OFFSET + fourCycle.u.copy.rectangle.x2 * view.X_STEP;
+
+                    let dStart = "M" + xLeftStart + "," + yTopStart + " ";
+                    let dEnd = " z";
+                    let d = dStart + xRightStart + "," + yTopStart + " "
+                        + xRightStart + "," + yBottomStart + " "
+                        + xMiddle + "," + yBottomStart + " "
+                        + xLeftStart + "," + yBottomStart + dEnd;
+                    polygon.setAttribute("d", d);
+
+                    d3.select("#" + polygon.id)
+                        .each(() => { transitioningTwo++ })
+                        .transition(t)
+                        .attrTween('d', function () {
+                            return function (t) {
+                                let xIntermediate = xRightStart - t * xDiff;
+                                let yIntermediate = yBottomStart - t * view.Y_STEP;
+                                return dStart + xIntermediate + "," + yTopStart + " "
+                                    + xIntermediate + "," + yIntermediate + " "
+                                    + xMiddle + "," + yBottomStart + " "
+                                    + xLeftStart + "," + yBottomStart + dEnd;
+                            };
+                        })
+                        .on('end', () => {
+                            transitioningTwo--;
+                            if (transitioningTwo === 0) {
+                                transitionTwoEnded(fourCycle, interiorVertices);
+                            }
+                        })
+                        .remove();
+                } else if (vertex === fourCycle.x) {
+                    let polygon = await getPolygon(vertex, highlight, fourCycle);
+                    let xMiddle = view.OFFSET + fourCycle.w.copy.rectangle.x1 * view.X_STEP;
+                    let xDiff = xMiddle - xLeftStart;
+
+                    let dStart = "M" + xRightStart + "," + yBottomStart + " "
+                        + xLeftStart + "," + yBottomStart + " "
+                        + xLeftStart + "," + yTopStart + " ";
+                    let dEnd = " z";
+                    let d = dStart + xLeftStart + "," + yTopStart + " "
+                        + xRightStart + "," + yTopStart + dEnd;
+                    polygon.setAttribute("d", d);
+
+                    d3.select("#" + polygon.id)
+                        .each(() => { transitioningTwo++ })
+                        .transition(t)
+                        .attrTween('d', function () {
+                            return function (t) {
+                                let xIntermediate = xMiddle - t * xDiff;
+                                let yIntermediate = yTopStart - t * view.Y_STEP;
+                                return dStart + xIntermediate + "," + yIntermediate + " "
+                                    + xRightStart + "," + yIntermediate + dEnd;
+                            };
+                        })
+                        .on('end', () => {
+                            transitioningTwo--;
+                            if (transitioningTwo === 0) {
+                                transitionTwoEnded(fourCycle, interiorVertices);
+                            }
+                        })
+                        .remove();
+                }
             }
         }
 
@@ -474,15 +891,29 @@ function transitionTwoEnded(fourCycle, interiorVertices) {
                 vertex.svgRect.classList.remove("hidden");
                 vertex.polygon.classList.add("hidden");
             }
-        } else if (fourCycle.emptyType === model.flipCycleType.EMPTY_H2V) {
-            if ((vertex === fourCycle.u) || (vertex === fourCycle.w)) {
-                vertex.svgRect.classList.remove("hidden");
-                vertex.polygon.classList.add("hidden");
+        } else if (fourCycle.orientation === model.orientations.CW) {
+            if (fourCycle.emptyType === model.flipCycleType.EMPTY_H2V) {
+                if ((vertex === fourCycle.u) || (vertex === fourCycle.w)) {
+                    vertex.svgRect.classList.remove("hidden");
+                    vertex.polygon.classList.add("hidden");
+                }
+            } else if (fourCycle.emptyType === model.flipCycleType.EMPTY_V2H) {
+                if ((vertex === fourCycle.v) || (vertex === fourCycle.x)) {
+                    vertex.svgRect.classList.remove("hidden");
+                    vertex.polygon.classList.add("hidden");
+                }
             }
-        } else if (fourCycle.emptyType === model.flipCycleType.EMPTY_V2H) {
-            if ((vertex === fourCycle.v) || (vertex === fourCycle.x)) {
-                vertex.svgRect.classList.remove("hidden");
-                vertex.polygon.classList.add("hidden");
+        } else {
+            if (fourCycle.emptyType === model.flipCycleType.EMPTY_H2V) {
+                if ((vertex === fourCycle.v) || (vertex === fourCycle.x)) {
+                    vertex.svgRect.classList.remove("hidden");
+                    vertex.polygon.classList.add("hidden");
+                }
+            } else if (fourCycle.emptyType === model.flipCycleType.EMPTY_V2H) {
+                if ((vertex === fourCycle.w) || (vertex === fourCycle.u)) {
+                    vertex.svgRect.classList.remove("hidden");
+                    vertex.polygon.classList.add("hidden");
+                }
             }
         }
     }
@@ -579,8 +1010,8 @@ async function computeR2(graphR2, graphR1, fourCycle, copyName, interiorVertices
 
     // 1) for vertices on the four paths (which includes the four vertices of four cycle)
     let vertexR2;
+    let outsideFourCycle = false;
     if (fourCycle.orientation === model.orientations.CW) {
-        let outsideFourCycle = false;
         for (const vertex of graphR1.copy.pathWest) {
             if (vertex === graphR1.copy.pathWest[graphR1.copy.pathWest.length - 1]) {
                 continue;
@@ -677,7 +1108,6 @@ async function computeR2(graphR2, graphR1, fourCycle, copyName, interiorVertices
             }
         }
     } else {
-        // TODO add EMPTY rotation special cases
         for (const vertex of graphR1.copy.pathWest) {
             if (vertex === graphR1.copy.pathWest[graphR1.copy.pathWest.length - 1]) {
                 continue;
@@ -685,13 +1115,11 @@ async function computeR2(graphR2, graphR1, fourCycle, copyName, interiorVertices
             // for first vertex of path, we get u
             vertexR2 = vertex.original.rTwo;
             vertexR2.rectangle.y1 = yBottom;
-            outsideFourCycle = true;
             for (const edge of vertexR2.edges) {
                 if ((edge.color === model.colors.BLUE) && (edge.source === vertexR2)) {
                     edge.target.rectangle.y2 = yBottom;
                     if (edge.target === fourCycleR2.v) {
-                        // now no longer on edges between path
-                        outsideFourCycle = false;
+                        break;
                     }
                 }
             }
@@ -703,12 +1131,11 @@ async function computeR2(graphR2, graphR1, fourCycle, copyName, interiorVertices
             // for first vertex of path, we get v
             vertexR2 = vertex.original.rTwo;
             vertexR2.rectangle.x2 = xLeft;
-            outsideFourCycle = true;
             for (const edge of vertexR2.edges) {
                 if ((edge.color === model.colors.RED) && (edge.source === vertexR2)) {
                     edge.target.rectangle.x1 = xLeft;
                     if (edge.target === fourCycleR2.w) {
-                        outsideFourCycle = false;
+                        break;
                     }
                 }
             }
@@ -719,13 +1146,21 @@ async function computeR2(graphR2, graphR1, fourCycle, copyName, interiorVertices
             }
             // for first vertex of path, we get w
             vertexR2 = vertex.original.rTwo;
-            vertexR2.rectangle.y2 = yTop;
+            if (fourCycle.emptyType === model.flipCycleType.EMPTY_H2V) {
+                vertexR2.rectangle.y2 = yTop - 1;
+            } else {
+                vertexR2.rectangle.y2 = yTop;
+            }
             outsideFourCycle = true;
             for (const edge of vertexR2.edges) {
                 if ((edge.color === model.colors.BLUE) && (edge.target === vertexR2)) {
-                    edge.source.rectangle.y1 = yTop;
+                    if (fourCycle.emptyType === model.flipCycleType.EMPTY_H2V) {
+                        edge.source.rectangle.y1 = yTop - 1;
+                    } else {
+                        edge.source.rectangle.y1 = yTop;
+                    }
                     if (edge.source === fourCycleR2.x) {
-                        outsideFourCycle = false;
+                        break;
                     }
                 }
             }
@@ -736,13 +1171,20 @@ async function computeR2(graphR2, graphR1, fourCycle, copyName, interiorVertices
             }
             // for first vertex of path, we get x
             vertexR2 = vertex.original.rTwo;
-            vertexR2.rectangle.x1 = xRight;
-            outsideFourCycle = true;
+            if (fourCycle.emptyType === model.flipCycleType.EMPTY_V2H) {
+                vertexR2.rectangle.x1 = xRight + 1;
+            } else {
+                vertexR2.rectangle.x1 = xRight;
+            }
             for (const edge of vertexR2.edges) {
                 if ((edge.color === model.colors.RED) && (edge.target === vertexR2)) {
-                    edge.source.rectangle.x2 = xRight;
+                    if (fourCycle.emptyType === model.flipCycleType.EMPTY_V2H) {
+                        edge.source.rectangle.x2 = xRight + 1;
+                    } else {
+                        edge.source.rectangle.x2 = xRight;
+                    }
                     if (edge.source === fourCycleR2.u) {
-                        outsideFourCycle = false;
+                        break;
                     }
                 }
             }
@@ -765,6 +1207,19 @@ async function computeR2(graphR2, graphR1, fourCycle, copyName, interiorVertices
         let xOffset = oldX1 - xLeft;
         let yOffset = oldY1 - yTop;
 
+        // console.log("xLeft", xLeft);
+        // console.log("xRight", xRight);
+        // console.log("yTop", yTop);
+        // console.log("yBottom", yBottom);
+        // console.log("xOffset", xOffset);
+        // console.log("yOffset", yOffset);
+
+        // console.log("oldX1", oldX1);
+        // console.log("oldX2", oldX2);
+        // console.log("oldY1", oldY1);
+        // console.log("oldY2", oldY2);
+
+
         if (fourCycle.orientation === model.orientations.CW) {
             rectangle.x2 = xRight - yOffset;
             rectangle.x1 = rectangle.x2 - (oldY2 - oldY1);
@@ -776,6 +1231,11 @@ async function computeR2(graphR2, graphR1, fourCycle, copyName, interiorVertices
             rectangle.x1 = xLeft + yOffset;
             rectangle.x2 = rectangle.x1 + (oldY2 - oldY1);
         }
+
+        // console.log("newX1", rectangle.x1);
+        // console.log("newX2", rectangle.x2);
+        // console.log("newY1", rectangle.y1);
+        // console.log("newY2", rectangle.y2);
     }
 }
 
@@ -795,6 +1255,7 @@ async function setRectangleSizesInR1(graphR1) {
             rect.y1 = Math.min(copy.rectangle.y1, copySplit.rectangle.y1);
             rect.y2 = Math.max(copy.rectangle.y2, copySplit.rectangle.y2);
             vertex.rectangle = rect;
+            copy.copySplit === undefined;
         }
     }
 
@@ -821,7 +1282,7 @@ async function setRectangleSizesInR1(graphR1) {
                     break;
                 }
             }
-            vertex.rectangle.y2 = blueOut.target.rectangle.y1;
+            vertex.rectangle.y1 = blueOut.target.rectangle.y2;
         }
     }
 
@@ -838,24 +1299,33 @@ async function computeR1Helper(graphR1, fourCycle) {
     g.pathNorth = [];
     g.pathEast = [];
     g.pathSouth = [];
+    let referenceEdgeWest = (fourCycle.orientation === model.orientations.CW) ? fourCycle.ve.copy.copy : fourCycle.xe.copy.copy;
+    let referenceEdgeNorth = (fourCycle.orientation === model.orientations.CW) ? fourCycle.we.copy.copy : fourCycle.ue.copy.copy;
+    let referenceEdgeEast = (fourCycle.orientation === model.orientations.CW) ? fourCycle.xe.copy.copy : fourCycle.ve.copy.copy;
+    let referenceEdgeSouth = (fourCycle.orientation === model.orientations.CW) ? fourCycle.ue.copy.copy : fourCycle.we.copy.copy;
     if (!fourCycle.isEmpty()) {
         g.pathWest = await computeSplitPath(fourCycle.u, fourCycle.v, gRed, directions.BACKWARD, directions.WEST, fourCycle);
         g.pathNorth = await computeSplitPath(fourCycle.v, fourCycle.w, gBlue, directions.FORWARD, directions.NORTH, fourCycle);
         g.pathSouth = await computeSplitPath(fourCycle.x, fourCycle.u, gBlue, directions.BACKWARD, directions.SOUTH, fourCycle);
-        await splitPath(g.pathWest, fourCycle.ve.copy.copy, g, directions.WEST, fourCycle);
-        await splitPath(g.pathNorth, fourCycle.we.copy.copy, g, directions.NORTH, fourCycle);
-        await splitPath(g.pathSouth, fourCycle.ue.copy.copy, g, directions.SOUTH, fourCycle);
-    } else if (fourCycle.emptyType === model.flipCycleType.EMPTY_H2V) {
+        await splitPath(g.pathWest, referenceEdgeWest, g, directions.WEST, fourCycle);
+        await splitPath(g.pathNorth, referenceEdgeNorth, g, directions.NORTH, fourCycle);
+        await splitPath(g.pathSouth, referenceEdgeSouth, g, directions.SOUTH, fourCycle);
+    } else if (((fourCycle.emptyType === model.flipCycleType.EMPTY_H2V) && (fourCycle.orientation === model.orientations.CW))
+        || ((fourCycle.emptyType === model.flipCycleType.EMPTY_V2H) && (fourCycle.orientation === model.orientations.CCW))) {
         g.pathSouth = await computeSplitPath(fourCycle.x, fourCycle.u, gBlue, directions.BACKWARD, directions.SOUTH, fourCycle);
-        await splitPath(g.pathSouth, fourCycle.ue.copy.copy, g, directions.SOUTH, fourCycle);
-    } else if (fourCycle.emptyType === model.flipCycleType.EMPTY_V2H) {
+        await splitPath(g.pathSouth, referenceEdgeSouth, g, directions.SOUTH, fourCycle);
+    } else if (((fourCycle.emptyType === model.flipCycleType.EMPTY_V2H) && (fourCycle.orientation === model.orientations.CW))
+        || ((fourCycle.emptyType === model.flipCycleType.EMPTY_H2V) && (fourCycle.orientation === model.orientations.CCW))) {
         g.pathNorth = await computeSplitPath(fourCycle.v, fourCycle.w, gBlue, directions.FORWARD, directions.NORTH, fourCycle);
-        await splitPath(g.pathNorth, fourCycle.we.copy.copy, g, directions.NORTH, fourCycle);
+        await splitPath(g.pathNorth, referenceEdgeNorth, g, directions.NORTH, fourCycle);
     }
     g.pathEast = await computeSplitPath(fourCycle.w, fourCycle.x, gRed, directions.FORWARD, directions.EAST, fourCycle);
-    await splitPath(g.pathEast, fourCycle.xe.copy.copy, g, directions.EAST, fourCycle);
+    await splitPath(g.pathEast, referenceEdgeEast, g, directions.EAST, fourCycle);
 
     // c) compute rectangular dual
+    for (const vertex of g.vertices) {
+        vertex.setNumberIncomingEdges();
+    }
     await algorithms.computeRectangularDual(g);
 
     // d) if four-cycle separating, check if interior is square
@@ -870,222 +1340,16 @@ async function computeR1Helper(graphR1, fourCycle) {
     return g;
 }
 
-async function makeInteriorSquare(g, fourCycle) {
-    let xDiff, yDiff;
-    let u = fourCycle.u.copy.copy;
-    let v = fourCycle.v.copy.copy;
-    let w = fourCycle.w.copy.copy;
-    let x = fourCycle.x.copy.copy;
-    if (fourCycle.orientation === model.orientations.CW) {
-        xDiff = x.rectangle.x1 - v.rectangle.x2;
-        yDiff = u.rectangle.y1 - w.rectangle.y2;
-    } else {
-        xDiff = u.rectangle.x2 - w.rectangle.x1;
-        yDiff = x.rectangle.y1 - v.rectangle.y2;
-    }
-
-    console.log("xDiff", xDiff);
-    console.log("yDiff", yDiff);
-
-    if (xDiff !== yDiff) {
-        let diff = Math.abs(xDiff - yDiff);
-        // inside not a square, so have to extend in the respective direction
-        let leftSplit;
-        let topSplit;
-        let rightSplit;
-        let bottomSplit
-        if (xDiff < yDiff) {
-            console.log(" interioir of four cycle less wide then heigh; add " + diff + " extra vertices");
-            if (fourCycle.orientation === model.orientations.CW) {
-                topSplit = w.splitCopy;
-                rightSplit = x.splitCopy;
-                bottomSplit = u.splitCopy;
-            } else {
-                topSplit = v.splitCopy;
-                rightSplit = w.splitCopy;
-                bottomSplit = x.splitCopy;
-            }
-            // we add diff many vertices into the right side of interior
-            let fillerVertices = [];
-            for (let i = 0; i < diff; i++) {
-                // TODO computed coordinate for x risky, because might not actually lie to left
-                let fillerVertex = new model.Vertex(g.vertices.length, rightSplit.x - 5 * (diff - i + 1), rightSplit.y);
-                fillerVertices.push(fillerVertex);
-                g.vertices.push(fillerVertex);
-            }
-
-            // find out where to insert in bottom split vertex
-            let bottomOutIndex = 0;
-            for (const edge of bottomSplit.edges) {
-                if ((edge.color === model.colors.RED) && (edge.source === bottomSplit)) {
-                    bottomOutIndex = bottomSplit.edges.indexOf(edge);
-                    break;
-                }
-            }
-
-            // find out where to insert in right split vertex
-            let rightInIndex;
-            for (const edge of rightSplit.edges) {
-                if ((edge.color === model.colors.RED) && (edge.target === rightSplit)) {
-                    rightInIndex = rightSplit.edges.indexOf(edge);
-                    break;
-                }
-            }
-
-            // BLUE IN (adding)
-            let newEdge;
-            for (let i = 0; i < fillerVertices.length; i++) {
-                newEdge = new model.Edge(g.edges.length, bottomSplit, fillerVertices[i]);
-                newEdge.graph = g;
-                newEdge.color = model.colors.BLUE;
-                g.edges.push(newEdge);
-                fillerVertices[i].edges.push(newEdge);
-                bottomSplit.edges.splice(bottomOutIndex++, 0, newEdge);
-            }
-            // RED IN (resetting)
-            let resetEdges = 0;
-            g.original.extendRightwards = []; // store vertices that extend to right
-            for (const edge of rightSplit.edges) {
-                if ((edge.color === model.colors.RED) && (edge.target === rightSplit)) {
-                    edge.replaceEndpoint(rightSplit, fillerVertices[0]);
-                    resetEdges++;
-                    g.original.extendRightwards.push(edge.source.original);
-                }
-            }
-            let replacedEdges = rightSplit.edges.splice(rightInIndex, resetEdges);
-            // RED IN (adding)
-            fillerVertices[0].edges.push(replacedEdges);
-            for (let i = 0; i < fillerVertices.length - 1; i++) {
-                newEdge = new model.Edge(g.edges.length, fillerVertices[i], fillerVertices[i + 1]);
-                newEdge.graph = g;
-                newEdge.color = model.colors.RED;
-                g.edges.push(newEdge);
-                fillerVertices[i + 1].edges.push(newEdge);
-            }
-            // BLUE OUT (adding)
-            for (let i = 0; i < fillerVertices.length; i++) {
-                newEdge = new model.Edge(g.edges.length, fillerVertices[i], topSplit);
-                newEdge.graph = g;
-                newEdge.color = model.colors.BLUE;
-                g.edges.push(newEdge);
-                fillerVertices[i].edges.push(newEdge);
-                topSplit.edges.splice(0, 0, newEdge);
-            }
-            // RED OUT (setting)
-            for (let i = 0; i < fillerVertices.length - 1; i++) {
-                let edge = fillerVertices[i + 1].edges[1];
-                fillerVertices[i].edges.push(edge);
-            }
-            let lastFillerVertex = fillerVertices[fillerVertices.length - 1];
-            newEdge = new model.Edge(g.edges.length, lastFillerVertex, rightSplit);
-            newEdge.graph = g;
-            newEdge.color = model.colors.RED;
-            g.edges.push(newEdge);
-            lastFillerVertex.edges.push(newEdge);
-            rightSplit.edges.splice(rightInIndex, 0, newEdge);
-        } else {
-            if (fourCycle.orientation === model.orientations.CW) {
-                leftSplit = v.splitCopy;
-                topSplit = w.splitCopy;
-                rightSplit = x.splitCopy;
-            } else {
-                leftSplit = u.splitCopy
-                topSplit = v.splitCopy;
-                rightSplit = w.splitCopy;
-            }
-            // we add diff many vertices at top side of interior
-            let fillerVertices = [];
-            for (let i = 0; i <= diff; i++) {
-                // TODO computed coordinate for y risky, because might not actually lie below 
-                let fillerVertex = new model.Vertex(g.vertices.length, topSplit.x, topSplit.y + 2 * (diff - i));
-                fillerVertices.push(fillerVertex);
-                g.vertices.push(fillerVertex);
-            }
-
-            // find out where to insert in left split vertex
-            let leftOutIndex;
-            for (const edge of leftSplit.edges) {
-                if ((edge.color === model.colors.RED) && (edge.source === leftSplit)) {
-                    leftOutIndex = leftSplit.edges.indexOf(edge);
-                    break;
-                }
-            }
-            // find out where to insert in right split vertex
-            let rightInIndex;
-            for (const edge of rightSplit.edges) {
-                if ((edge.color === model.colors.BLUE) && (edge.source === rightSplit)) {
-                    rightInIndex = rightSplit.edges.indexOf(edge);
-                    break;
-                }
-            }
-            // we always add at 0 in top split vertex
-
-            // BLUE IN (resetting)
-            let resetEdges = 0;
-            g.original.extendUpwards = []; // store vertices that extend to right
-            for (const edge of topSplit.edges) {
-                if ((edge.color === model.colors.BLUE) && (edge.target === topSplit)) {
-                    edge.replaceEndpoint(topSplit, fillerVertices[0]);
-                    resetEdges++;
-                    g.original.extendUpwards.push(edge.source.original);
-                }
-            }
-            let replacedEdges = topSplit.edges.splice(0, resetEdges);
-            // BLUE IN (adding)
-            fillerVertices[0].edges.push(replacedEdges);
-            let newEdge;
-            for (let i = 0; i < fillerVertices.length - 1; i++) {
-                newEdge = new model.Edge(g.edges.length, fillerVertices[i], fillerVertices[i + 1]);
-                newEdge.graph = g;
-                newEdge.color = model.colors.BLUE;
-                g.edges.push(newEdge);
-                fillerVertices[i + 1].edges.push(newEdge);
-            }
-            // RED IN (adding)
-            for (let i = 0; i < fillerVertices.length; i++) {
-                newEdge = new model.Edge(g.edges.length, leftSplit, fillerVertices[i]);
-                newEdge.graph = g;
-                newEdge.color = model.colors.RED;
-                g.edges.push(newEdge);
-                fillerVertices[i].edges.push(newEdge);
-                leftSplit.edges.splice(leftOutIndex, 0, newEdge);
-            }
-            // BLUE OUT (setting)
-            for (let i = 0; i < fillerVertices.length - 1; i++) {
-                let edge = fillerVertices[i + 1].edges[0];
-                fillerVertices[i].edges.push(edge);
-            }
-            let lastFillerVertex = fillerVertices[fillerVertices.length - 1];
-            newEdge = new model.Edge(g.edges.length, lastFillerVertex, topSplit);
-            newEdge.graph = g;
-            newEdge.color = model.colors.BLUE;
-            g.edges.push(newEdge);
-            lastFillerVertex.edges.push(newEdge);
-            topSplit.edges.splice(0, 0, newEdge);
-            // RED OUT (adding)
-            for (let i = 0; i < fillerVertices.length; i++) {
-                newEdge = new model.Edge(g.edges.length, fillerVertices[i], rightSplit);
-                newEdge.graph = g;
-                newEdge.color = model.colors.RED;
-                g.edges.push(newEdge);
-                fillerVertices[i].edges.push(newEdge);
-                rightSplit.edges.splice(rightInIndex++, 0, newEdge);
-            }
-        }
-    }
-}
-
-async function splitPath(path, edge, g, direction, fourCycle) {
+async function splitPath(path, referenceEdge, g, direction, fourCycle) {
     let orientation = fourCycle.orientation;
 
     let vertexIndex = 0;
     let curVertex = path[vertexIndex++];
     let prevVertex = null;
     let prevVertexSplit = null
-    let curEdge = edge;
     // where to insert edge between split vertices in prev split vertex
     let insertPosition = -1;
-    let edgeIndex = curVertex.edges.indexOf(curEdge);
+    let edgeIndex = curVertex.edges.indexOf(referenceEdge);
     let curEdges = curVertex.edges;
     let curVertexSplit = null;
 
@@ -1167,7 +1431,7 @@ async function splitPath(path, edge, g, direction, fourCycle) {
                 }
 
                 // for WEST, next edge is not needed after first vertex
-                curEdge = curEdges[0];
+                referenceEdge = curEdges[0];
 
             } else if (direction === directions.NORTH) {
                 // - NORTH - NORTH - NORTH - NORTH - NORTH - NORTH - NORTH - NORTH -
@@ -1196,7 +1460,7 @@ async function splitPath(path, edge, g, direction, fourCycle) {
                     prevVertexSplit.edges.splice(insertPosition, 0, newEdge);
                     g.edges.push(newEdge);
                 } else if (fourCycle.emptyType === model.flipCycleType.EMPTY_V2H) {
-                    // on empty path, we have to add another edge to x
+                    // on empty four-cycle, we have to add another edge to x
                     // so first find last blue incoming of current
                     let lastBlueEdgeIn;
                     for (const edge of curVertex.edges) {
@@ -1244,7 +1508,7 @@ async function splitPath(path, edge, g, direction, fourCycle) {
                 g.edges.push(newEdge);
 
                 // set current edge to edge to next vertex on path
-                curEdge = curEdges[edgeIndex + 2];
+                referenceEdge = curEdges[edgeIndex + 2];
             } else if (direction === directions.EAST) {
                 // - EAST - EAST - EAST - EAST - EAST - EAST - EAST - EAST -
                 curVertexSplit.y = curVertexSplit.y - splittingOffset;
@@ -1286,9 +1550,9 @@ async function splitPath(path, edge, g, direction, fourCycle) {
                     // in EAST case, we simply add edge as last edge
                     prevVertexSplit.edges.push(newEdge);
                 } else if (fourCycle.emptyType === model.flipCycleType.EMPTY_H2V) {
-                    // on empty path, we have to add another edge to u
+                    // on empty four-cycle, we have to add another edge to u
                     // so first find last red incoming of current
-                    curVertex.setNumberIncomingEdges;
+                    curVertex.setNumberIncomingEdges();
                     let lastRedEdgeIn = curVertex.edges[curVertex.numIncomingEdges - 1];
                     let lastRedNeighbor = lastRedEdgeIn.getOtherEndpoint(curVertex);
                     // then add edge from it to split vertex
@@ -1318,7 +1582,7 @@ async function splitPath(path, edge, g, direction, fourCycle) {
                 }
 
                 // set current edge to edge to next vertex on path
-                curEdge = curEdges[edgeIndex + 2];
+                referenceEdge = curEdges[edgeIndex + 2];
 
             } else if (direction === directions.SOUTH) {
                 // - SOUTH - SOUTH - SOUTH - SOUTH - SOUTH - SOUTH - SOUTH - SOUTH -
@@ -1373,14 +1637,262 @@ async function splitPath(path, edge, g, direction, fourCycle) {
                 curVertexSplit.edges = curVertexSplit.edges.concat(removedEdges);
 
                 // set current edge to edge to next vertex on path
-                curEdge = curEdges[0];
+                referenceEdge = curEdges[0];
             }
         } else {
-            // TODO
-        }
+            if (direction === directions.WEST) {
+                // - WEST - WEST - WEST - WEST - WEST - WEST - WEST - WEST -
+                curVertexSplit.y = curVertexSplit.y - splittingOffset; // TODO this is very risky, because path might not actually run in correct direction
 
-        if (prevVertex !== null) {
-            prevVertex.setNumberIncomingEdges();
+                // BLUE OUT + RED OUT (resetting)
+                // set endpoint of appropriate edges from current vertex to split vertex
+                let resetEdges = 0;
+                edgeIndex = Infinity;
+                for (let i = 0; i < curEdges.length; i++) {
+                    const edge = curVertex.edges[i];
+                    if (edge.target !== curVertex) {
+                        if (edge === referenceEdge) {
+                            break;
+                        } else {
+                            edgeIndex = Math.min(edgeIndex, i);
+                            edge.replaceEndpoint(curVertex, curVertexSplit);
+                            resetEdges++;
+                        }
+                    }
+                }
+                let removedEdges = curEdges.splice(edgeIndex, resetEdges);
+
+                // BLUE IN (adding)
+                let newEdge = await getNewEdge(curVertex, curVertexSplit, model.colors.BLUE);
+                curVertexSplit.edges.push(newEdge);
+                curEdges.splice(edgeIndex, 0, newEdge);
+                let nextInsertPosition = curVertexSplit.edges.length;
+
+                // RED IN (adding): last vertex to split connected to last vertex of path
+                if (curVertex === path[path.length - 2]) {
+                    let lastVertex = path[path.length - 1];
+                    newEdge = await getNewEdge(lastVertex, curVertexSplit, model.colors.RED);
+                    curVertexSplit.edges.push(newEdge);
+                    let lastEdge = lastVertex.getEdgeToNeighbor(curVertex);
+                    lastVertex.edges.splice(lastVertex.edges.indexOf(lastEdge), 0, newEdge);
+                }
+
+                // BLUE OUT + RED OUT (adding): add edges that now have split vertex as target to the edge list
+                curVertexSplit.edges = curVertexSplit.edges.concat(removedEdges);
+
+                // RED OUT (adding): 
+                // if not first vertex on path, then connect current split vertex with previous one
+                if (prevVertexSplit != null) {
+                    newEdge = await getNewEdge(curVertexSplit, prevVertexSplit, model.colors.RED);
+                    prevVertexSplit.edges.push(newEdge);
+                    curVertexSplit.edges.splice(insertPosition, 0, newEdge);
+                }
+                insertPosition = nextInsertPosition;
+
+                // set current edge to edge to next vertex on path
+                referenceEdge = curEdges[edgeIndex - 1];
+            } else if (direction === directions.NORTH) {
+                // - NORTH - NORTH - NORTH - NORTH - NORTH - NORTH - NORTH - NORTH -
+                curVertexSplit.x = curVertexSplit.x + splittingOffset;
+
+                // BLUE IN OUT (resetting)
+                let removedEdgesStart = [];
+                let resetEdges = 0;
+                if (vertexIndex === 1) {
+                    for (let i = 0; i < curEdges.length; i++) {
+                        const edge = curEdges[i];
+                        if (edge === referenceEdge) {
+                            break;
+                        } else {
+                            let nextEdge = curEdges[i];
+                            nextEdge.replaceEndpoint(curVertex, curVertexSplit);
+                            resetEdges++;
+                        }
+                    }
+                    removedEdgesStart = curEdges.splice(0, resetEdges);
+                }
+                // RED OUT (resetting)
+                edgeIndex = Infinity;
+                resetEdges = 0;
+                for (let i = 3; i < curEdges.length; i++) {
+                    let nextEdge = curEdges[i];
+                    // move all the incoming blue edges to split vertex
+                    if ((nextEdge.color === model.colors.RED) && (nextEdge.source === curVertex)) {
+                        edgeIndex = Math.min(edgeIndex, i);
+                        nextEdge.replaceEndpoint(curVertex, curVertexSplit);
+                        resetEdges++;
+                    }
+                }
+                let removedEdgesEnd = curEdges.splice(edgeIndex, resetEdges);
+
+                // BLUE IN (adding): 
+                // a) if first vertex on path, then add replaced edges
+                curVertexSplit.edges = curVertexSplit.edges.concat(removedEdgesStart);
+                // b) if not first vertex on path, then connect current split vertex with previous one
+                let newEdge = null;
+                if (prevVertexSplit != null) {
+                    newEdge = await getNewEdge(prevVertexSplit, curVertexSplit, model.colors.BLUE);
+                    curVertexSplit.edges.push(newEdge);
+                    prevVertexSplit.edges.splice(insertPosition, 0, newEdge);
+                } else if (fourCycle.emptyType === model.flipCycleType.EMPTY_V2H) {
+                    // on empty four-cycle, we have to add another edge to u
+                    // we can get u via first blue incoming of current
+                    let blueEdgeIn = curEdges[0];
+                    let blueNeighbor = blueEdgeIn.getOtherEndpoint(curVertex);
+                    // then add edge from it to split vertex
+                    newEdge = await getNewEdge(blueNeighbor, curVertexSplit, model.colors.BLUE);
+                    curVertexSplit.edges.push(newEdge);
+                    let index = blueNeighbor.edges.indexOf(blueEdgeIn);
+                    blueNeighbor.edges.splice(index + 1, 0, newEdge);
+                }
+
+                // RED IN (adding): create and insert new edge between split pair
+                newEdge = await getNewEdge(curVertex, curVertexSplit, model.colors.RED);
+                curVertexSplit.edges.push(newEdge);
+                curEdges.push(newEdge);
+                insertPosition = curVertexSplit.edges.length;
+
+                // BLUE OUT (adding): last vertex to split connected to last vertex of path
+                if (curVertex === path[path.length - 2]) {
+                    let lastVertex = path[path.length - 1];
+                    newEdge = await getNewEdge(curVertexSplit, lastVertex, model.colors.BLUE);
+                    curVertexSplit.edges.push(newEdge);
+                    let lastEdge = lastVertex.getEdgeToNeighbor(curVertex);
+                    lastVertex.edges.splice(lastVertex.edges.indexOf(lastEdge), 0, newEdge);
+                }
+
+                // RED OUT (adding): 
+                curVertexSplit.edges = curVertexSplit.edges.concat(removedEdgesEnd);
+
+                // set current edge to edge to next vertex on path
+                referenceEdge = curEdges[edgeIndex - 1];
+            } else if (direction === directions.EAST) {
+                // - EAST - EAST - EAST - EAST - EAST - EAST - EAST - EAST -
+                curVertexSplit.y = curVertexSplit.y + splittingOffset;
+
+                // BLUE IN + RED IN (resetting)
+                let resetEdges = 0;
+                for (let i = 0; i < curEdges.length; i++) {
+                    let nextEdge = curEdges[i];
+                    if (nextEdge === referenceEdge) {
+                        break;
+                    }
+                    nextEdge.replaceEndpoint(curVertex, curVertexSplit);
+                    resetEdges++;
+                }
+                // BLUE IN + RED IN (removing + adding)
+                curVertexSplit.edges = curEdges.splice(0, resetEdges)
+
+                // RED IN (adding): 
+                let newEdge = null;
+                if (prevVertexSplit != null) {
+                    newEdge = await getNewEdge(prevVertexSplit, curVertexSplit, model.colors.RED);
+                    curVertexSplit.edges.push(newEdge);
+                    // in EAST case, we simply add edge as last edge
+                    prevVertexSplit.edges.push(newEdge);
+                } else if (fourCycle.emptyType === model.flipCycleType.EMPTY_H2V) {
+                    // on empty four-cycle, we have to add another edge to v
+                    // so first find first red incoming of current
+                    curVertex.setNumberIncomingEdges();
+                    let firstRedEdgeIn = null;
+                    for (const edge of curVertex.edges) {
+                        if (edge.color === model.colors.RED) {
+                            firstRedEdgeIn = edge;
+                            break;
+                        }
+                    }
+                    let firstRedNeighbor = firstRedEdgeIn.getOtherEndpoint(curVertex);
+                    // then add edge from it to split vertex
+                    newEdge = getNewEdge(firstRedNeighbor, curVertexSplit, model.colors.RED);
+                    curVertexSplit.edges.push(newEdge);
+                    let index = firstRedNeighbor.edges.indexOf(firstRedEdgeIn);
+                    firstRedNeighbor.edges.push(newEdge);
+                }
+
+                // BLUE OUT (adding): create and insert new edge between split pair
+                newEdge = await getNewEdge(curVertexSplit, curVertex, model.colors.BLUE);
+                curVertexSplit.edges.push(newEdge);
+                curEdges.splice(0, 0, newEdge);
+
+                // RED OUT (adding): last vertex to split connected to last vertex of path
+                if (curVertex === path[path.length - 2]) {
+                    let lastVertex = path[path.length - 1];
+                    newEdge = await getNewEdge(curVertexSplit, lastVertex, model.colors.RED);
+                    curVertexSplit.edges.push(newEdge);
+                    let lastEdge = lastVertex.getEdgeToNeighbor(curVertex);
+                    lastVertex.edges.splice(lastVertex.edges.indexOf(lastEdge), 0, newEdge);
+                }
+
+                // set current edge to edge to next vertex on path
+                referenceEdge = curEdges[curEdges.length - 1];
+
+            } else if (direction === directions.SOUTH) {
+                // - SOUTH - SOUTH - SOUTH - SOUTH - SOUTH - SOUTH - SOUTH - SOUTH -
+                curVertexSplit.x = curVertexSplit.x - splittingOffset;
+
+                // RED IN + BLUE OUT (resetting)
+                let resetEdges = 0;
+                edgeIndex = Infinity;
+                for (let i = 1; i < curEdges.length; i++) {
+                    let nextEdge = curEdges[i];
+                    if (nextEdge === referenceEdge) {
+                        break;
+                    }
+                    if ((nextEdge.color === model.colors.RED) ||
+                        ((vertexIndex === 1) && (nextEdge.source === curVertex))) {
+                        edgeIndex = Math.min(edgeIndex, i);
+                        nextEdge.replaceEndpoint(curVertex, curVertexSplit);
+                        resetEdges++;
+                    }
+                }
+                // remove edges from current vertex that have target changed
+                let removedEdges = curEdges.splice(edgeIndex, resetEdges);
+
+                // BLUE IN (adding): last vertex to split connected to last vertex of path
+                let newEdge = null;
+                if (curVertex === path[path.length - 2]) {
+                    let lastVertex = path[path.length - 1];
+                    newEdge = await getNewEdge(lastVertex, curVertexSplit, model.colors.BLUE);
+                    curVertexSplit.edges.push(newEdge);
+                    let lastEdge = lastVertex.getEdgeToNeighbor(curVertex);
+                    lastVertex.edges.splice(lastVertex.edges.indexOf(lastEdge), 0, newEdge);
+                }
+
+                // RED IN + BLUE OUT (adding):
+                curVertexSplit.edges = curVertexSplit.edges.concat(removedEdges);
+                // BLUE OUT (adding): if not first vertex on path, then connect current split vertex with previous one
+                if (prevVertexSplit != null) {
+                    newEdge = await getNewEdge(curVertexSplit, prevVertexSplit, model.colors.BLUE);
+                    curVertexSplit.edges.push(newEdge);
+                    prevVertexSplit.edges.splice(0, 0, newEdge);
+                } else if (fourCycle.emptyType === model.flipCycleType.EMPTY_V2H) {
+                    // on empty four-cycle, we have to add another edge to w
+                    // we can get u via first blue incoming of current
+                    let blueEdge = null;
+                    for (const edge of curVertex.edges) {
+                        if (edge.color === model.colors.BLUE) {
+                            blueEdge = edge;
+                        } else {
+                            break;
+                        }
+                    }
+                    let blueNeighbor = blueEdge.getOtherEndpoint(curVertex);
+                    // then add edge from it to split vertex
+                    newEdge = await getNewEdge(curVertexSplit, blueNeighbor, model.colors.BLUE);
+                    curVertexSplit.edges.push(newEdge);
+                    let index = blueNeighbor.edges.indexOf(blueEdge);
+                    blueNeighbor.edges.splice(index + 1, 0, newEdge);
+                }
+
+                // RED OUT (adding): create and insert new edge between split pair
+                newEdge = await getNewEdge(curVertexSplit, curVertex, model.colors.RED);
+                curVertexSplit.edges.push(newEdge);
+                curEdges.splice(edgeIndex, 0, newEdge);
+
+                // set reference edge to edge to next vertex on path
+                referenceEdge = curEdges[edgeIndex - 1];
+            }
+
         }
 
         curVertexSplit.graph = g;
@@ -1391,7 +1903,7 @@ async function splitPath(path, edge, g, direction, fourCycle) {
         curVertex = path[vertexIndex++];
 
         curEdges = curVertex.edges;
-        edgeIndex = curVertex.edges.indexOf(curEdge);
+        edgeIndex = curVertex.edges.indexOf(referenceEdge);
     }
 }
 
@@ -1475,6 +1987,215 @@ async function computeSplitPath(uOriginal, vOriginal, gColor, forwardBackward, d
     return path;
 }
 
+async function makeInteriorSquare(g, fourCycle) {
+    let xDiff, yDiff;
+    let u = fourCycle.u.copy.copy;
+    let v = fourCycle.v.copy.copy;
+    let w = fourCycle.w.copy.copy;
+    let x = fourCycle.x.copy.copy;
+    if (fourCycle.orientation === model.orientations.CW) {
+        xDiff = x.rectangle.x1 - v.rectangle.x2;
+        yDiff = u.rectangle.y1 - w.rectangle.y2;
+    } else {
+        xDiff = w.rectangle.x1 - u.rectangle.x2;
+        yDiff = x.rectangle.y1 - v.rectangle.y2;
+    }
+
+    if (xDiff !== yDiff) {
+        let diff = Math.abs(xDiff - yDiff);
+        // inside not a square, so have to extend in the respective direction
+        let leftSplit;
+        let topSplit;
+        let rightSplit;
+        let bottomSplit
+        if (xDiff < yDiff) {
+            console.log(" interioir of four cycle heigher than wide; add " + diff + " extra vertices");
+            if (fourCycle.orientation === model.orientations.CW) {
+                topSplit = w.splitCopy;
+                rightSplit = x.splitCopy;
+                bottomSplit = u.splitCopy;
+            } else {
+                topSplit = v.splitCopy;
+                rightSplit = w.splitCopy;
+                bottomSplit = x.splitCopy;
+            }
+            // we add diff many vertices into the right side of interior
+            let fillerVertices = [];
+            for (let i = 0; i < diff; i++) {
+                // TODO computed coordinate for x risky, because might not actually lie to left
+                let fillerVertex = new model.Vertex(g.vertices.length, rightSplit.x - 5 * (diff - i + 1), rightSplit.y);
+                fillerVertices.push(fillerVertex);
+                g.vertices.push(fillerVertex);
+            }
+
+            // find out where to insert in bottom split vertex
+            let bottomOutIndex = 0;
+            for (const edge of bottomSplit.edges) {
+                if ((edge.color === model.colors.RED) && (edge.source === bottomSplit)) {
+                    bottomOutIndex = bottomSplit.edges.indexOf(edge);
+                    break;
+                }
+            }
+
+            // find out where to insert in right split vertex
+            let rightInIndex;
+            for (const edge of rightSplit.edges) {
+                if ((edge.color === model.colors.RED) && (edge.target === rightSplit)) {
+                    rightInIndex = rightSplit.edges.indexOf(edge);
+                    break;
+                }
+            }
+
+            // BLUE IN (adding)
+            let newEdge;
+            for (let i = 0; i < fillerVertices.length; i++) {
+                newEdge = new model.Edge(g.edges.length, bottomSplit, fillerVertices[i], false);
+                newEdge.graph = g;
+                newEdge.color = model.colors.BLUE;
+                g.edges.push(newEdge);
+                fillerVertices[i].edges.push(newEdge);
+                bottomSplit.edges.splice(bottomOutIndex++, 0, newEdge);
+            }
+            // RED IN (resetting)
+            let resetEdges = 0;
+            g.original.extendRightwards = []; // store vertices that extend to right
+            for (const edge of rightSplit.edges) {
+                if ((edge.color === model.colors.RED) && (edge.target === rightSplit)) {
+                    edge.replaceEndpoint(rightSplit, fillerVertices[0]);
+                    resetEdges++;
+                    g.original.extendRightwards.push(edge.source.original);
+                }
+            }
+            let replacedEdges = rightSplit.edges.splice(rightInIndex, resetEdges);
+            // RED IN (adding)
+            fillerVertices[0].edges = fillerVertices[0].edges.concat(replacedEdges);
+            for (let i = 0; i < fillerVertices.length - 1; i++) {
+                newEdge = new model.Edge(g.edges.length, fillerVertices[i], fillerVertices[i + 1], false);
+                newEdge.graph = g;
+                newEdge.color = model.colors.RED;
+                g.edges.push(newEdge);
+                fillerVertices[i + 1].edges.push(newEdge);
+            }
+            // BLUE OUT (adding)
+            for (let i = 0; i < fillerVertices.length; i++) {
+                newEdge = new model.Edge(g.edges.length, fillerVertices[i], topSplit, false);
+                newEdge.graph = g;
+                newEdge.color = model.colors.BLUE;
+                g.edges.push(newEdge);
+                fillerVertices[i].edges.push(newEdge);
+                topSplit.edges.splice(0, 0, newEdge);
+            }
+            // RED OUT (setting)
+            for (let i = 0; i < fillerVertices.length - 1; i++) {
+                let edge = fillerVertices[i + 1].edges[1];
+                fillerVertices[i].edges.push(edge);
+            }
+            let lastFillerVertex = fillerVertices[fillerVertices.length - 1];
+            newEdge = new model.Edge(g.edges.length, lastFillerVertex, rightSplit, false);
+            newEdge.graph = g;
+            newEdge.color = model.colors.RED;
+            g.edges.push(newEdge);
+            lastFillerVertex.edges.push(newEdge);
+            rightSplit.edges.splice(rightInIndex, 0, newEdge);
+        } else {
+            console.log(" interioir of four cycle wider than heigh; add " + diff + " extra vertices");
+            if (fourCycle.orientation === model.orientations.CW) {
+                leftSplit = v.splitCopy;
+                topSplit = w.splitCopy;
+                rightSplit = x.splitCopy;
+            } else {
+                leftSplit = u.splitCopy
+                topSplit = v.splitCopy;
+                rightSplit = w.splitCopy;
+            }
+            // we add diff many vertices at top side of interior
+            let fillerVertices = [];
+            for (let i = 0; i < diff; i++) {
+                // TODO computed coordinate for y risky, because might not actually lie below 
+                let fillerVertex = new model.Vertex(g.vertices.length, topSplit.x, topSplit.y + 2 * (diff - i + 1));
+                fillerVertices.push(fillerVertex);
+                g.vertices.push(fillerVertex);
+            }
+
+            // find out where to insert in left split vertex
+            let leftOutIndex;
+            for (const edge of leftSplit.edges) {
+                if ((edge.color === model.colors.RED) && (edge.source === leftSplit)) {
+                    leftOutIndex = leftSplit.edges.indexOf(edge);
+                    break;
+                }
+            }
+            // find out where to insert in right split vertex
+            let rightInIndex;
+            for (const edge of rightSplit.edges) {
+                if ((edge.color === model.colors.BLUE) && (edge.target === rightSplit)) {
+                    rightInIndex = rightSplit.edges.indexOf(edge);
+                    break;
+                }
+            }
+            // we always add at 0 in top split vertex
+
+            // BLUE IN (resetting)
+            let resetEdges = 0;
+            g.original.extendUpwards = []; // store vertices that extend to right
+            for (const edge of topSplit.edges) {
+                if ((edge.color === model.colors.BLUE) && (edge.target === topSplit)) {
+                    edge.replaceEndpoint(topSplit, fillerVertices[0]);
+                    resetEdges++;
+                    g.original.extendUpwards.push(edge.source.original);
+                }
+            }
+            let replacedEdges = topSplit.edges.splice(0, resetEdges);
+            // BLUE IN (adding)
+            fillerVertices[0].edges = fillerVertices[0].edges.concat(replacedEdges);
+            let newEdge;
+            for (let i = 0; i < fillerVertices.length - 1; i++) {
+                newEdge = new model.Edge(g.edges.length, fillerVertices[i], fillerVertices[i + 1], false);
+                newEdge.graph = g;
+                newEdge.color = model.colors.BLUE;
+                g.edges.push(newEdge);
+                fillerVertices[i + 1].edges.push(newEdge);
+            }
+            // RED IN (adding)
+            for (let i = 0; i < fillerVertices.length; i++) {
+                newEdge = new model.Edge(g.edges.length, leftSplit, fillerVertices[i], false);
+                newEdge.graph = g;
+                newEdge.color = model.colors.RED;
+                g.edges.push(newEdge);
+                fillerVertices[i].edges.push(newEdge);
+                leftSplit.edges.splice(leftOutIndex, 0, newEdge);
+            }
+            // BLUE OUT (setting)
+            for (let i = 0; i < fillerVertices.length - 1; i++) {
+                let edge = fillerVertices[i + 1].edges[0];
+                fillerVertices[i].edges.push(edge);
+            }
+            let lastFillerVertex = fillerVertices[fillerVertices.length - 1];
+            newEdge = new model.Edge(g.edges.length, lastFillerVertex, topSplit, false);
+            newEdge.graph = g;
+            newEdge.color = model.colors.BLUE;
+            g.edges.push(newEdge);
+            lastFillerVertex.edges.push(newEdge);
+            topSplit.edges.splice(0, 0, newEdge);
+            // RED OUT (adding)
+            for (let i = 0; i < fillerVertices.length; i++) {
+                newEdge = new model.Edge(g.edges.length, fillerVertices[i], rightSplit, false);
+                newEdge.graph = g;
+                newEdge.color = model.colors.RED;
+                g.edges.push(newEdge);
+                fillerVertices[i].edges.push(newEdge);
+                rightSplit.edges.splice(rightInIndex++, 0, newEdge);
+            }
+        }
+    }
+
+    for (const vertex of g.vertices) {
+        vertex.setNumberIncomingEdges();
+    }
+
+    return;
+}
+
 async function getNextVertex(vertex, forwardBackward, tendency) {
     let edge = null;
 
@@ -1495,14 +2216,29 @@ async function getNextVertex(vertex, forwardBackward, tendency) {
     return edge.getOtherEndpoint(vertex);
 }
 
-async function getPolygon(vertex, highlight = false) {
+async function getNewEdge(source, target, color) {
+    let graph = (source.graph === undefined) ? target.graph : source.graph;
+    let edge = new model.Edge("e" + graph.edges.length, source, target, false);
+    edge.graph = graph;
+    edge.color = color;
+    graph.edges.push(edge);
+    return edge;
+}
+
+async function getPolygon(vertex, highlight = false, fourCycle) {
     let rectangularDualLayer = view.svgTwo.querySelector("#rectangularDualLayer");
     let polygon = view.createSVGElement("path");
     polygon.setAttribute("stroke", "darkgray");
     polygon.setAttribute("id", "polygon-" + vertex.id);
     polygon.classList.add("hidden");
+    polygon.classList.add("fillOpacity");
     if (highlight) {
-        polygon.setAttribute("fill", getComputedStyle(document.documentElement).getPropertyValue('--highlightFill'));
+        if (fourCycle.orientation === model.orientations.CW) {
+            polygon.setAttribute("fill", getComputedStyle(document.documentElement).getPropertyValue('--highlightFill'));
+        } else {
+            polygon.setAttribute("fill", getComputedStyle(document.documentElement).getPropertyValue('--highlightCCW'));
+
+        }
     } else {
         polygon.setAttribute("fill", "none");
     }
