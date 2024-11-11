@@ -24,10 +24,10 @@ All symbols in the toolbar have description text on hover. Beyond that, here are
 ![Example usage](figs/exampleUsage.gif)
 
 ## Related papers
-**Simple algorithms for partial and simultaneous rectangular duals with given contact orientations **<br>
-*Steven Chaplick, Stefan Felsner, Philipp Kindermann, Jonathan Klawitter, Ignaz Rutter & Alexander Wolff *<br>
+**Simple algorithms for partial and simultaneous rectangular duals with given contact orientations**<br>
+*Steven Chaplick, Stefan Felsner, Philipp Kindermann, Jonathan Klawitter, Ignaz Rutter & Alexander Wolff*<br>
 [doi: 10.1016/j.tcs.2022.03.031](https://www.doi.org/10.1016/j.tcs.2022.03.031), [arXiv](https://arxiv.org/abs/2102.02013)
 
 **Morphing Rectangular Duals**<br>
-*Steven Chaplick, Philipp Kindermann, Jonathan Klawitter, Ignaz Rutter & Alexander Wolff *<br>
+*Steven Chaplick, Philipp Kindermann, Jonathan Klawitter, Ignaz Rutter & Alexander Wolff*<br>
 [doi: 10.1007/978-3-031-22203-0_28](https://www.doi.org/10.1007/978-3-031-22203-0_28), [arXiv](https://arxiv.org/abs/2112.03040)
